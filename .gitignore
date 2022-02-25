@@ -1,0 +1,7 @@
+__pycache__
+
+build
+NarutoRPG2Data
+*.log
+*.exe
+notes.md
