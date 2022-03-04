@@ -3,24 +3,10 @@ import os
 from hacktools import common
 
 
-def fixedLength(file):
-    size = 0
-    if "msginst" in file or "msgmenu" in file or "msgchrname" in file:
-        size = 0x6a
-        if "msgchrname" in file:
-            size = 0xc
-        elif "msg_menufield." in file:
-            size = 0x16
-        elif "msg_menujinkei" in file:
-            size = 0x36
-        elif "msg_f_iteminst" in file or "msg_f_jyutuinst" in file:
-            size = 0xa0
-    return size
-
-
 def extract(data):
     datfolder = data + "extract/data/rom/text/msg/"
     outfolder = data + "dat_output/"
+    common.logMessage("Extracting DAT to", outfolder, "...")
     common.makeFolder(outfolder)
     for file in common.showProgress(common.getFiles(datfolder)):
         common.logDebug("Processing", file)
@@ -56,15 +42,127 @@ def extract(data):
                         ptr = f.readUShort()
                         f.seek(ptr)
                         sjis = readShiftJIS(f)
-                        if sjis.endswith(">>"):
+                        common.logDebug(sjis)
+                        if sjis.endswith("$$"):
                             sjis = sjis[:-2]
                         if sjis.endswith("|"):
                             sjis = sjis[:-1]
+                        common.logDebug(sjis)
                         common.logDebug("Reading ptr", i, "at", common.toHex(ptr), sjis)
-                        sjissplit = sjis.split(">>>")
+                        sjissplit = sjis.split("$$$")
                         for subsjis in sjissplit:
+                            if subsjis.endswith("|"):
+                                subsjis = subsjis[:-1]
                             if subsjis != "":
                                 out.write(subsjis + "=\n")
+    common.logMessage("Done!")
+
+
+def repack(data):
+    datin = data + "extract/data/rom/text/msg/"
+    datout = data + "repack/data/rom/text/msg/"
+    infolder = data + "dat_input/"
+    chartot = transtot = 0
+
+    if not os.path.isdir(infolder):
+        common.logError("Input folder", infolder, "not found")
+        return
+
+    sections = {}
+    common.logMessage("Repacking DAT from", infolder, "...")
+    for file in common.getFiles(infolder):
+        if os.path.isfile(file.replace("/", "/[COMPLETE]")):
+            continue
+        filename = file.replace("[COMPLETE]", "")
+        with codecs.open(infolder + file, "r", "utf-8") as input:
+            section = common.getSection(input, "")
+            chartot, transtot = common.getSectionPercentage(section, chartot, transtot)
+            sections[filename] = section
+    common.makeFolder(datout)
+    for file in common.showProgress(common.getFiles(datin)):
+        common.logDebug("Processing", file)
+        filesize = os.path.getsize(datin + file)
+        common.makeFolders(datout + os.path.dirname(file))
+        common.copyFile(datin + file, datout + file)
+        with common.Stream(datin + file, "rb") as fin:
+            with common.Stream(datout + file, "rb+") as f:
+                fixedsize = fixedLength(file)
+                if fixedsize > 0:
+                    i = 0
+                    while True:
+                        fin.seek(i * fixedsize)
+                        f.seek(fin.tell())
+                        if fin.tell() >= filesize:
+                            break
+                        if sjis != "":
+                            sjis = getTranslation(sections, file, readShiftJIS(fin))
+                        if "msg_f_iteminst" in file:
+                            writeShiftJIS(f, sjis, 0x6a - 2)
+                            fin.seek(i * fixedsize + 0x6a)
+                            f.seek(fin.tell())
+                            if sjis != "":
+                                sjis = getTranslation(sections, file, readShiftJIS(fin))
+                            writeShiftJIS(f, sjis, 0x36 - 2)
+                        else:
+                            writeShiftJIS(f, sjis, fixedsize - 2)
+                        i += 1
+                else:
+                    ptrnum = fin.readUInt()
+                    f.seek(0x404)
+                    for i in range(ptrnum):
+                        fin.seek(4 + i * 2)
+                        ptr = fin.readUShort()
+                        fin.seek(ptr)
+                        sjis = readShiftJIS(fin)
+                        add1 = add2 = False
+                        if sjis.endswith("$$"):
+                            sjis = sjis[:-2]
+                            add1 = True
+                        if sjis.endswith("|"):
+                            sjis = sjis[:-1]
+                            add2 = True
+                        sjissplit = sjis.split("$$$")
+                        for j in range(len(sjissplit)):
+                            add3 = False
+                            if sjissplit[j].endswith("|"):
+                                sjissplit[j] = sjissplit[j][:-1]
+                                add3 = True
+                            if sjissplit[j] != "":
+                                sjissplit[j] = getTranslation(sections, file, sjissplit[j])
+                            if add3:
+                                sjissplit[j] += "|"
+                        sjis = "$$$".join(sjissplit)
+                        if add2:
+                            sjis += "|"
+                        if add1:
+                            sjis += "$$"
+                        f.writeUShortAt(4 + i * 2, f.tell())
+                        writeShiftJIS(f, sjis)
+    common.logMessage("Done!")
+
+
+def getTranslation(sections, file, sjis):
+    if sjis in sections[file] and sections[file][sjis][0] != "":
+        return sections[file][sjis][0]
+    for sectionfile in sections:
+        if sjis in sections[sectionfile] and sections[sectionfile][sjis][0] != "":
+            return sections[sectionfile][sjis][0]
+    return sjis
+
+
+def fixedLength(file):
+    size = 0
+    if "msginst" in file or "msgmenu" in file or "msgchrname" in file:
+        size = 0x6a
+        if "msgchrname" in file:
+            size = 0xc
+        elif "msg_menufield." in file:
+            size = 0x16
+        elif "msg_menujinkei" in file:
+            size = 0x36
+        elif "msg_f_iteminst" in file or "msg_f_jyutuinst" in file:
+            size = 0xa0
+    return size
 
 
 speakercodes = {
@@ -112,7 +210,7 @@ speakercodes = {
     0x29: "inari",
     0x2a: "homura",
     0x2b: "koharu",
-    0x2c: "tenten",
+    0x2c: "tonton",
     0x2d: "pakkun",
     0x2e: "gamakichi",
     0x2f: "gamatatsu",
@@ -134,6 +232,7 @@ speakercodes = {
     0x3f: "naruto3",
     0xff: "narrator",
 }
+speakercodesrev = {v: k for k, v in speakercodes.items()}
 
 colorcodes = {
     0x30: "black",
@@ -145,6 +244,7 @@ colorcodes = {
     0x36: "blue2",
     0x37: "red2",
 }
+colorcodesrev = {v: k for k, v in colorcodes.items()}
 
 
 def readShiftJIS(f, encoding="shift_jis"):
@@ -203,7 +303,93 @@ def readShiftJIS(f, encoding="shift_jis"):
                     common.logError("[ERROR] UnicodeDecodeError")
                     sjis += "[ERROR" + str(f.tell() - 2) + "]"
                 i += 2
-    sjis = sjis.replace("<03><01>", ">>")
-    sjis = sjis.replace("|>>", ">>")
-    sjis = sjis.replace(">><04>", ">>>")
+    sjis = sjis.replace("<03><01>", "$$")
+    sjis = sjis.replace("$$<04>", "$$$")
     return sjis
+
+
+def writeShiftJIS(f, s, maxlen=-1):
+    common.logDebug("Writing", s, "at", common.toHex(f.tell()))
+    s = s.replace("～", "〜")
+    s = s.replace("$$$", "$$<04>")
+    s = s.replace("$$", "<03><01>")
+    common.logDebug("Writing", s, "at", common.toHex(f.tell()))
+    i = 0
+    x = 0
+    while x < len(s):
+        c = s[x]
+        if c == "|":
+            if maxlen > 0 and i + 1 > maxlen:
+                common.logError("Line too long", s, maxlen)
+                break
+            f.writeByte(0xa)
+            x += 1
+            i += 1
+        elif c == "<":
+            code = s[x+1:].split(">", 1)[0]
+            x += len(code) + 2
+            if code in colorcodesrev:
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                i += 2
+                f.writeByte(0x7)
+                f.writeByte(colorcodesrev[code])
+            elif code.startswith("small_") or code in speakercodesrev:
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                i += 2
+                if code.startswith("small_"):
+                    code = code[6:]
+                    f.writeByte(0xf)
+                else:
+                    f.writeByte(0x10)
+                f.writeByte(speakercodesrev[code])
+            elif code.startswith("sound"):
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                code = code[5:]
+                i += 2
+                f.writeByte(0x6)
+                f.writeByte(int(code, 16))
+            elif code.startswith("symbol"):
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                code = code[6:]
+                i += 2
+                f.writeByte(0xe)
+                f.writeByte(int(code, 16))
+            elif code.startswith("w"):
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                code = code[1:]
+                i += 2
+                f.writeByte(0x5)
+                f.writeByte(int(code))
+            elif code == "instant":
+                if maxlen > 0 and i + 2 > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                i += 2
+                f.writeByte(0x9)
+                f.writeByte(0x1)
+            else:
+                nbytes = len(code) // 2
+                if maxlen > 0 and i + nbytes > maxlen:
+                    common.logError("Line too long", s, maxlen)
+                    break
+                i += nbytes
+                f.write(bytes.fromhex(code))
+        else:
+            if maxlen > 0 and i + 2 > maxlen:
+                common.logError("Line too long", s, maxlen)
+                break
+            x += 1
+            i += 2
+            f.write(c.encode("shift_jis"))
+    f.writeByte(0)
+    common.logDebug("Done!")

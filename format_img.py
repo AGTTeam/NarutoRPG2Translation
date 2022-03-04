@@ -20,6 +20,10 @@ def extract(data):
             nitro.drawNCGR(pngfile, nscr, ncgr, palettes, ncgr.width, ncgr.height)
 
 
+def repack(data):
+    pass
+
+
 def readImage(infolder, file, nob):
     # Read palette
     palfile = file.replace(".acg", ".acl")
