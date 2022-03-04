@@ -6,22 +6,52 @@ from hacktools import common, nitro
 def extract(data):
     infolder = data + "extract/data/rom/"
     outfolder = data + "out_ACG/"
+
+    common.logMessage("Extracting ACG to", outfolder, "...")
+    totfiles = 0
     common.makeFolder(outfolder)
     nob = readNOB(infolder)
     for file in common.showProgress(common.getFiles(infolder, ".acg")):
         if "map/anm" in file:
             continue
-        ncgr, nscr, cells, palettes = readImage(infolder, file, nob)
+        totfiles += 1
+        ncgr, nscr, cells, palettes, mapfile = readImage(infolder, file, nob)
         common.makeFolders(outfolder + os.path.dirname(file))
         pngfile = outfolder + file.replace(".acg", ".png")
         if cells is not None:
             nitro.drawNCER(pngfile, cells, ncgr, palettes)
         else:
             nitro.drawNCGR(pngfile, nscr, ncgr, palettes, ncgr.width, ncgr.height)
+    common.logMessage("Done! Repacked", totfiles, "files")
 
 
 def repack(data):
-    pass
+    acgin = data + "extract/data/rom/"
+    acgout = data + "repack/data/rom/"
+    workfolder = data + "work_ACG/"
+
+    common.logMessage("Repacking ACG from", workfolder, "...")
+    totfiles = 0
+    nob = readNOB(acgin)
+    open("tempcell.bin", "w").close()
+    for file in common.showProgress(common.getFiles(acgin, ".acg")):
+        if "map/anm" in file:
+            continue
+        # Exclude all map files temporarily
+        if "map/" in file:
+            continue
+        totfiles += 1
+        pngfile = file.replace(".acg", ".png")
+        if os.path.isfile(workfolder + pngfile):
+            ncgr, nscr, cells, palettes, mapfile = readImage(acgin, file, nob)
+            if nscr is None and cells is None:
+                nitro.writeNCGR(acgout + file, ncgr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
+            elif cells is None:
+                nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
+            else:
+                nitro.writeNCER(acgout + file, "tempcell.bin", ncgr, cells, workfolder + pngfile, palettes)
+    os.remove("tempcell.bin")
+    common.logMessage("Done! Repacked", totfiles, "files")
 
 
 def readImage(infolder, file, nob):
@@ -112,6 +142,7 @@ def readImage(infolder, file, nob):
     if os.path.isfile(infolder + mapfile) and "cut_in" not in file:
         size = os.path.getsize(infolder + mapfile)
         nscr = nitro.NSCR()
+        nscr.mapoffset = 0
         with common.Stream(infolder + mapfile, "rb") as f:
             # Look for the CLRF magic
             all = f.read()
@@ -140,7 +171,7 @@ def readImage(infolder, file, nob):
             cells = nitro.readManualCells(manualcells[file])
         elif foldername in manualcells:
             cells = nitro.readManualCells(manualcells[foldername])
-    return ncgr, nscr, cells, indexedpalettes
+    return ncgr, nscr, cells, indexedpalettes, mapfile
 
 
 def readNOB(infolder):

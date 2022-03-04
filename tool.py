@@ -2,7 +2,7 @@ import os
 import click
 from hacktools import common, nds, nitro
 
-version = "0.5.0"
+version = "0.6.0"
 data = "NarutoRPG2Data/"
 romfile = data + "naruto.nds"
 rompatch = data + "naruto_patched.nds"
