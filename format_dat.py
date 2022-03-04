@@ -313,7 +313,6 @@ def writeShiftJIS(f, s, maxlen=-1):
     s = s.replace("～", "〜")
     s = s.replace("$$$", "$$<04>")
     s = s.replace("$$", "<03><01>")
-    common.logDebug("Writing", s, "at", common.toHex(f.tell()))
     i = 0
     x = 0
     while x < len(s):
