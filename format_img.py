@@ -1,11 +1,16 @@
 import math
 import os
+from PIL import Image
 from hacktools import common, nitro
+
+
+fontfiles = ["sys_bg_a_001", "sys_bg_a_002", "sys_bg_a_003", "sys_bg_a_004"]
 
 
 def extract(data):
     infolder = data + "extract/data/rom/"
     outfolder = data + "out_ACG/"
+    outfont = data + "out_FONT/"
 
     common.logMessage("Extracting ACG to", outfolder, "...")
     totfiles = 0
@@ -16,20 +21,53 @@ def extract(data):
             continue
         totfiles += 1
         ncgr, nscr, cells, palettes, mapfile = readImage(infolder, file, nob)
+        if ncgr is None:
+            continue
         common.makeFolders(outfolder + os.path.dirname(file))
         pngfile = outfolder + file.replace(".acg", ".png")
         if cells is not None:
             nitro.drawNCER(pngfile, cells, ncgr, palettes)
         else:
             nitro.drawNCGR(pngfile, nscr, ncgr, palettes, ncgr.width, ncgr.height)
-    common.logMessage("Done! Repacked", totfiles, "files")
+    common.logMessage("Done! Extracted", totfiles, "files")
+    # Split font
+    common.logMessage("Extracting FONT to", outfont, "...")
+    common.makeFolder(outfont)
+    for i in range(len(fontfiles)):
+        fontfolder = outfont + fontfiles[i] + "/"
+        common.makeFolder(fontfolder)
+        img = Image.open(outfolder + "sys/bg/" + fontfiles[i] + ".png")
+        img = img.convert("RGBA")
+        height = 16 if i <= 1 else 8
+        for j in range(img.height // height):
+            crop = img.crop((0, height * j, 8, height * (j + 1)))
+            crop.save(fontfolder + str(j).zfill(3) + ".png", "PNG")
+    common.logMessage("Done!")
 
 
 def repack(data):
     acgin = data + "extract/data/rom/"
     acgout = data + "repack/data/rom/"
     workfolder = data + "work_ACG/"
+    workfont = data + "work_FONT/"
 
+    common.logMessage("Repacking FONT from", workfolder, "...")
+    for i in range(len(fontfiles)):
+        fontfolder = workfont + fontfiles[i] + "/"
+        if os.path.isdir(fontfolder):
+            common.copyFile(workfolder.replace("work_", "out_") + "sys/bg/" + fontfiles[i] + ".png", workfolder + "sys/bg/" + fontfiles[i] + ".png")
+            imgfile = workfolder + "sys/bg/" + fontfiles[i] + ".png"
+            img = Image.open(imgfile)
+            img = img.convert("RGBA")
+            height = 16 if i <= 1 else 8
+            for j in range(img.height // height):
+                fontimg = fontfolder + str(j).zfill(3) + ".png"
+                if os.path.isfile(fontimg):
+                    crop = Image.open(fontimg)
+                    crop = crop.convert("RGBA")
+                    img.paste(crop, (0, height * j), crop)
+            img.save(imgfile, "PNG")
+    common.logMessage("Done!")
     common.logMessage("Repacking ACG from", workfolder, "...")
     totfiles = 0
     nob = readNOB(acgin)
@@ -40,6 +78,7 @@ def repack(data):
         # Exclude all map files temporarily
         if "map/" in file:
             continue
+        common.logDebug("Processing", file, "...")
         totfiles += 1
         pngfile = file.replace(".acg", ".png")
         if os.path.isfile(workfolder + pngfile):
@@ -93,6 +132,12 @@ def readImage(infolder, file, nob):
             palfile = "title/bg_sasuke.acl"
         elif palfile.startswith("zmap/obj"):
             palfile = "zmap/obj/zm_icon_000.acl"
+    if not os.path.isfile(infolder + palfile):
+        if palfile == "sys/obj/sys_ob_a_001.acl":
+            palfile = "sys/obj/sys_ob_a_000.acl"
+        else:
+            common.logError("Palette file", palfile, "not found")
+            return None, None, None, {}, ""
     size = os.path.getsize(infolder + palfile)
     with common.Stream(infolder + palfile, "rb") as f:
         pallen = size
@@ -121,7 +166,7 @@ def readImage(infolder, file, nob):
             ncgr.width = 32
         elif file.startswith("b_name") or file.startswith("face/kao"):
             ncgr.width = 40
-        elif "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file:
+        elif "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file or "sys_bg_a_004" in file:
             ncgr.width = 8
         elif file.startswith("sys/obj/sys_ob_f"):
             ncgr.width = 32
@@ -178,6 +223,8 @@ def readNOB(infolder):
     # Read the jutsu NOB files
     nob = {}
     for i in range(len(jutsucells)):
+        if not os.path.isfile(infolder + jutsucells[i]["file"]):
+            continue
         with common.Stream(infolder + jutsucells[i]["file"], "rb") as f:
             data = f.read()
         nob[data] = i

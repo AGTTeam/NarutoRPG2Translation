@@ -71,9 +71,9 @@ def repack(data):
     sections = {}
     common.logMessage("Repacking DAT from", infolder, "...")
     for file in common.getFiles(infolder):
-        if os.path.isfile(file.replace("/", "/[COMPLETE]")):
+        if os.path.isfile(file.replace("/", "/[COMPLETE]")) or os.path.isfile(file.replace("/", "/[TEST]")):
             continue
-        filename = file.replace("[COMPLETE]", "")
+        filename = file.replace("[COMPLETE]", "").replace("[TEST]", "")
         with codecs.open(infolder + file, "r", "utf-8") as input:
             section = common.getSection(input, "")
             chartot, transtot = common.getSectionPercentage(section, chartot, transtot)
@@ -247,7 +247,11 @@ colorcodes = {
 colorcodesrev = {v: k for k, v in colorcodes.items()}
 
 
-def readShiftJIS(f, encoding="shift_jis"):
+def readShiftJISBIN(f, encoding="shift_jis"):
+    return readShiftJIS(f, encoding, False)
+
+
+def readShiftJIS(f, encoding="shift_jis", allowunk=True):
     sjis = ""
     i = 0
     while True:
@@ -287,11 +291,15 @@ def readShiftJIS(f, encoding="shift_jis"):
                 add = "small_" if b1 == 0xf else ""
                 sjis += "<" + add + speakercode + ">"
             elif b1 == 0x13:
+                if not allowunk:
+                    return ""
                 sjis += "<13" + common.toHex(b2) + ">"
             elif b1 == 0x14:
                 b3 = f.readByte()
                 sjis += "<14" + common.toHex(b2) + common.toHex(b3) + ">"
             elif not common.checkShiftJIS(b1, b2):
+                if not allowunk and b1 > 0x4:
+                    return ""
                 f.seek(-1, 1)
                 sjis += "<" + common.toHex(b1) + ">"
                 i += 1
@@ -300,6 +308,8 @@ def readShiftJIS(f, encoding="shift_jis"):
                 try:
                     sjis += f.read(2).decode(encoding).replace("〜", "～")
                 except UnicodeDecodeError:
+                    if not allowunk:
+                        return ""
                     common.logError("[ERROR] UnicodeDecodeError")
                     sjis += "[ERROR" + str(f.tell() - 2) + "]"
                 i += 2

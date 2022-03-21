@@ -2,7 +2,7 @@ import os
 import click
 from hacktools import common, nds, nitro
 
-version = "0.6.0"
+version = "0.7.0"
 data = "NarutoRPG2Data/"
 romfile = data + "naruto.nds"
 rompatch = data + "naruto_patched.nds"
@@ -15,26 +15,38 @@ outfolder = data + "repack/"
 
 @common.cli.command()
 @click.option("--rom", is_flag=True, default=False)
+@click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
-def extract(rom, dat, img):
-    all = not rom and not dat and not img
+@click.option("--en", default=0)
+def extract(rom, bin, dat, img, en):
+    datafolder = data
+    if en > 0:
+        datafolder = datafolder.replace("Data/", "en" + str(en) + "/")
+    all = not rom and not bin and not dat and not img
     if all or rom:
-        nds.extractRom(romfile, infolder, outfolder)
+        nds.extractRom(romfile.replace(data, datafolder), infolder.replace(data, datafolder), outfolder.replace(data, datafolder))
+    if all or bin:
+        import format_bin
+        format_bin.extract(datafolder)
     if all or dat:
         import format_dat
-        format_dat.extract(data)
+        format_dat.extract(datafolder)
     if all or img:
         import format_img
-        format_img.extract(data)
+        format_img.extract(datafolder)
 
 
 @common.cli.command()
 @click.option("--no-rom", is_flag=True, default=False)
+@click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
-def repack(no_rom, dat, img):
-    all = not dat and not img
+def repack(no_rom, bin, dat, img):
+    all = not bin and not dat and not img
+    if all or bin:
+        import format_bin
+        format_bin.repack(data)
     if all or dat:
         import format_dat
         format_dat.repack(data)
