@@ -133,9 +133,7 @@ def repack(data):
                                 add3 = True
                             if sjissplit[j] != "":
                                 sjissplit[j] = getTranslation(sections, file, sjissplit[j])
-                                prewrap = sjissplit[j]
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, wordwrap, detectTextCode)
-                                common.logMessage(prewrap, sjissplit[j])
                             if add3:
                                 sjissplit[j] += "|"
                         sjis = "$$$".join(sjissplit)
