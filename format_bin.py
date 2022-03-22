@@ -40,4 +40,10 @@ def repack(data):
     header = data + "extract/header.bin"
     binout = data + "repack/arm9.bin"
     common.copyFile(binin, binout)
+    with codecs.open(data + "fontconfig.txt", "r", "utf-8") as f:
+        section = common.getSection(f, "")
+    with common.Stream(data + "fontdata.bin", "wb") as f:
+        for c in section:
+            f.write(c.replace("～", "〜").encode("shift_jis"))
+            f.writeUShort(int(section[c][0]))
     common.armipsPatch(common.bundledFile("bin_patch.asm"))

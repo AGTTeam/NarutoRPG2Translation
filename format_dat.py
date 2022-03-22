@@ -2,6 +2,8 @@ import codecs
 import os
 from hacktools import common
 
+wordwrap = 190
+
 
 def extract(data):
     datfolder = data + "extract/data/rom/text/msg/"
@@ -61,6 +63,7 @@ def extract(data):
 def repack(data):
     datin = data + "extract/data/rom/text/msg/"
     datout = data + "repack/data/rom/text/msg/"
+    fontconfig = data + "fontconfig.txt"
     infolder = data + "dat_input/"
     chartot = transtot = 0
 
@@ -70,6 +73,7 @@ def repack(data):
 
     sections = {}
     common.logMessage("Repacking DAT from", infolder, "...")
+    glyphs = readFontGlyphs(fontconfig)
     for file in common.getFiles(infolder):
         if os.path.isfile(file.replace("/", "/[COMPLETE]")) or os.path.isfile(file.replace("/", "/[TEST]")):
             continue
@@ -129,6 +133,9 @@ def repack(data):
                                 add3 = True
                             if sjissplit[j] != "":
                                 sjissplit[j] = getTranslation(sections, file, sjissplit[j])
+                                prewrap = sjissplit[j]
+                                sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, wordwrap, detectTextCode)
+                                common.logMessage(prewrap, sjissplit[j])
                             if add3:
                                 sjissplit[j] += "|"
                         sjis = "$$$".join(sjissplit)
@@ -148,6 +155,27 @@ def getTranslation(sections, file, sjis):
         if sjis in sections[sectionfile] and sections[sectionfile][sjis][0] != "":
             return sections[sectionfile][sjis][0]
     return sjis
+
+
+def detectTextCode(s, i=0):
+    if s[i] == "<":
+        return len(s[i:].split(">", 1)[0]) + 1
+    return 0
+
+
+def readFontGlyphs(file):
+    glyphs = {}
+    with codecs.open(file, "r", "utf-8") as f:
+        fontconfig = common.getSection(f, "")
+        asciicount = 0x20
+        for c in fontconfig:
+            charlen = int(fontconfig[c][0])
+            glyph = common.FontGlyph(0, charlen, charlen)
+            glyphs[c] = glyph
+            if asciicount < 0x7f:
+                glyphs[chr(asciicount)] = glyph
+                asciicount += 1
+    return glyphs
 
 
 def fixedLength(file):
