@@ -1,8 +1,11 @@
+import codecs
 import os
 import click
-from hacktools import common, nds, nitro
+import ndspy.soundArchive
+import ndspy.soundStream
+from hacktools import common, nds
 
-version = "0.8.0"
+version = "0.9.0"
 data = "NarutoRPG2Data/"
 romfile = data + "naruto.nds"
 rompatch = data + "naruto_patched.nds"
@@ -42,8 +45,9 @@ def extract(rom, bin, dat, img, en):
 @click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
-def repack(no_rom, bin, dat, img):
-    all = not bin and not dat and not img
+@click.option("--snd", is_flag=True, default=False)
+def repack(no_rom, bin, dat, img, snd):
+    all = not bin and not dat and not img and not snd
     if all or bin:
         import format_bin
         format_bin.repack(data)
@@ -53,6 +57,39 @@ def repack(no_rom, bin, dat, img):
     if all or img:
         import format_img
         format_img.repack(data)
+    if os.path.isdir(data + "sound") and os.path.isdir(data + "voice_matching") and snd:
+        infile = "voice_matching/jpn_to_eng.txt"
+        common.logMessage("Repacking sound from", infile, "...")
+        with codecs.open(data + infile, "r", "utf-8") as input:
+            section = common.getSection(input, "")
+        jp = ndspy.soundArchive.SDAT.fromFile(data + "extract/data/rom/sound/sound_data.sdat")
+        en1 = ndspy.soundArchive.SDAT.fromFile(data + "sound/en1.sdat")
+        en2 = ndspy.soundArchive.SDAT.fromFile(data + "sound/en2.sdat")
+        for i in range(len(jp.streams)):
+            name = jp.streams[i][0]
+            fullname = "jp/" + name
+            if fullname in section:
+                newname = section[fullname][0]
+                if newname != "":
+                    sourcedat = None
+                    if newname.startswith("en1/"):
+                        sourcedat = en1
+                    elif newname.startswith("en2/"):
+                        sourcedat = en2
+                    if sourcedat is not None:
+                        found = False
+                        for name, stream in sourcedat.streams:
+                            if name == newname[4:]:
+                                jp.streams[i] = (name, stream)
+                                found = True
+                                break
+                        if not found:
+                            common.logError("Stream", newname, "not found")
+                    else:
+                        stream = ndspy.soundStream.STRM.fromFile(data + "sound/" + newname + ".strm")
+                        jp.streams[i] = (name, stream)
+        jp.saveToFile(data + "repack/data/rom/sound/sound_data.sdat")
+        common.logMessage("Done!")
     if not no_rom:
         if os.path.isdir(replacefolder):
             common.mergeFolder(replacefolder, outfolder)

@@ -1,9 +1,8 @@
 .nds
 
-.open "NarutoRPG2Data/repack/arm9.bin",0x02000000
-  .org 0x0208a2e0
-  .area 0x350
-  .align
+.open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
+  .orga 0x92fc0
+  .area 0x600
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
@@ -63,26 +62,13 @@
   .db 0
   ;Current character x (0,2,4,6)
   .db 0
-  ;Need to increase stuff after drawing glyph
+  ;Need to increase position after drawing glyph
   .db 0
-
-  .macro VWF_STR_BEGIN_MACRO
-    push {r0-r1}
-    ldr r0,=VWF_DATA
-    mov r1,0x0
-    ldrb r1,[r0]
-    pop {r0-r1}
-  .endmacro
-
-  VWF_STR_BEGIN1:
-  mov r4,0x4000
-  VWF_STR_BEGIN_MACRO
-  b VWF_STR_BEGIN1_RET
-
-  VWF_STR_BEGIN2:
-  mov r6,0x8000
-  VWF_STR_BEGIN_MACRO
-  b VWF_STR_BEGIN2_RET
+  ;Draw in the previous tile
+  .db 0
+  ;Clean up everything after drawing
+  .db 0
+  .align
 
   VWF_BEGIN:
   sub sp,sp,0x8
@@ -92,27 +78,39 @@
   strb r1,[r0,0x2]
   ;Get the VWF value
   ldr r3,=IS_ASCII
+  ldr r1,[r3,0x0]
+  cmp r1,0x0
+  beq @@noascii
   ldr r3,[r3,0x4]
   ldr r2,=SJIS_LOOKUP
   mov r1,0x8
   @@loop:
   ldrh r4,[r2]
   cmp r4,0x0
-  beq @@return
+  beq @@found
   cmp r3,r4
   addne r2,r2,0x4
   bne @@loop
-  @@return:
+  @@found:
   ldrh r1,[r2,0x2]
   strb r1,[r0,0x1]
+  @@return:
   pop {r0-r4}
   b VWF_BEGIN_RET
+  @@noascii:
+  mov r1,0x8
+  strb r1,[r0,0x1]
+  b @@return
   .pool
 
   ;original: strb r2,[r3],0x1
   VWF:
   push {r0-r4}
   ldr r0,=VWF_DATA
+  ;Check if we need to draw in the previous glyph
+  ldrb r1,[r0,0x4]
+  cmp r1,0x1
+  subeq r3,r3,0x40
   ;Increase graphics ptr by the Character start / 2
   ldrb r1,[r0,0x0]
   mov r4,r1,lsr 1
@@ -120,7 +118,7 @@
   ;Set r1 to char start + current char
   ldrb r4,[r0,0x2]
   add r1,r1,r4
-  ;If r1 >= 8, draw in the next glyph (+0x40) but go up one row (-0x8)
+  ;If r1 >= 8, draw in the next glyph (+0x40) but go up one row (-0x4)
   cmp r1,0x8
   addge r3,r3,0x40 - 0x4
   ;Store the actual pixel data
@@ -139,23 +137,57 @@
   VWF_END:
   push {r0-r2}
   ldr r0,=VWF_DATA
+  mov r1,0x0
+  strb r1,[r0,0x4]
   ldrb r1,[r0,0x0]
   ldrb r2,[r0,0x1]
   ;Add character length to character start
   add r1,r1,r2
-  ;If >= 8, decrease it by 8
   strb r1,[r0,0x0]
+  ;Check if the value was 0 (r1 == r2)
+  cmp r1,r2
+  beq @@waszero
+  ;Otherwhise, check if it's less than 8
   cmp r1,0x8
-  blt @@return
-  ;Move to the next 8x16 space
+  blt @@lessthan8
+  ;Move to the next 8x16 space and draw in the previous glyph only if r1-8 > 0
   sub r1,r1,0x8
   strb r1,[r0,0x0]
+  cmp r1,0x0
+  beq @@return
   mov r1,0x1
   strb r1,[r0,0x3]
+  @@lessthan8:
+  mov r1,0x1
+  strb r1,[r0,0x4]
+  b @@return
+  @@waszero:
+  ;If the value was 0, we need to move regardless, and set it to 0 if it's 8
+  cmp r1,0x8
+  mov r1,0x0
+  movlt r1,0x1
+  strb r1,[r0,0x4]
+  mov r1,0x1
+  strb r1,[r0,0x3]
+  bne @@return
+  mov r1,0x0
+  strb r1,[r0,0x0]
   @@return:
+  ldrb r1,[r0,0x5]
+  cmp r1,0x1
+  beq @@cleanup
+  @@pop:
   pop {r0-r2}
   add sp,sp,0x8
   b VWF_END_RET
+  ;Clean up everything except the "move to next tile" part
+  @@cleanup:
+  mov r1,0x0
+  strb r1,[r0,0x0]
+  strb r1,[r0,0x1]
+  strb r1,[r0,0x2]
+  str r1,[r0,0x4]
+  b @@pop
   .pool
 
   VWF_INCREASE:
@@ -167,11 +199,56 @@
   mov r1,0x0
   strb r1,[r0,0x3]
   ldr r0,[r11,r9]
+  ;Fill the new glyph with 0x11
+  push {r0-r2}
+  add r0,r0,0x40
+  mov r1,0x0
+  ldr r2,=0x11111111
+  @@loop:
+  str r2,[r0]
+  add r0,r0,0x4
+  add r1,r1,0x1
+  cmp r1,0x10
+  bne @@loop
+  pop {r0-r2}
   b VWF_INCREASE_RET
   .pool
-  .endarea
 
-  ;Hook the function that reads characters
+  CHECK_NEXT_CHAR:
+  push {r0-r1}
+  @@checkagain:
+  ldrb r1,[r0,0x1]
+  ;Cleanup on string end
+  cmp r1,0x0
+  beq @@cleanup
+  ;Cleanup on sentence end
+  cmp r1,0x3
+  beq @@cleanup
+  ;Cleanup on line break
+  cmp r1,0xa
+  beq @@cleanup
+  ;Cleanup on symbol
+  cmp r1,0xe
+  beq @@cleanup
+  ;For colors, we need to check the next character as well since it might be at the end of a line
+  cmp r1,0x7
+  addeq r0,r0,0x2
+  beq @@checkagain
+  ;Jump to the normal function
+  @@return:
+  pop {r0-r1}
+  b 0x02025cfc
+  @@cleanup:
+  ldr r0,=VWF_DATA
+  mov r1,0x1
+  strb r1,[r0,0x5]
+  b @@return
+  .pool
+  .endarea
+.close
+
+.open "NarutoRPG2Data/repack/arm9.bin",0x02000000
+  ;Hook the function that reads characters to convert ASCII to SJIS
   .org 0x02025d50
   b CONVERT_ASCII
   CONVERT_ASCII_RET:
@@ -217,14 +294,13 @@
   VWF_INCREASE_RET:
   .org 0x0202797c
   VWF_DONT_INCREASE:
+  ;Treat alt text the same as normal text, not sure this is needed
+  .org 0x020278f0
+  beq 0x020278f8
 
-  ;Reset variables when a string starts rendering
-  .org 0x02026d08
-  b VWF_STR_BEGIN1
-  VWF_STR_BEGIN1_RET:
-  .org 0x020266a8
-  b VWF_STR_BEGIN2
-  VWF_STR_BEGIN2_RET:
+  ;Store the next char to check if we need to clean up the VWF
+  .org 0x020278a4
+  bl CHECK_NEXT_CHAR
 
   ;Don't check for line length limits
   .org 0x020278c4

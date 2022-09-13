@@ -5,6 +5,7 @@ import format_dat
 from hacktools import common, nds
 
 binrange = [(0x88f54, 0x92c00)]
+freeranges = [(0x92fc0+0x600, 0x92fc0+0x1000)]
 
 
 def extract(data):
@@ -27,23 +28,18 @@ def extract(data):
     common.logMessage("Done!")
 
 
-class ARMSection:
-    def __init__(self):
-        self.start = 0
-        self.size = 0
-        self.bsssize = 0
-        self.datastart = 0
-
-
 def repack(data):
     binin = data + "extract/arm9.bin"
-    header = data + "extract/header.bin"
+    headerin = data + "extract/header.bin"
+    headerout = data + "repack/header.bin"
+    binfile = data + "bin_input.txt"
     binout = data + "repack/arm9.bin"
-    common.copyFile(binin, binout)
+    nds.expandBIN(binin, binout, headerin, headerout, 0x1000, 0x1ff9000)
     with codecs.open(data + "fontconfig.txt", "r", "utf-8") as f:
         section = common.getSection(f, "")
     with common.Stream(data + "fontdata.bin", "wb") as f:
         for c in section:
             f.write(c.replace("～", "〜").encode("shift_jis"))
             f.writeUShort(int(section[c][0]))
+    nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=0x1ff9000 - 0x92fc0, nocopy=True)
     common.armipsPatch(common.bundledFile("bin_patch.asm"))
