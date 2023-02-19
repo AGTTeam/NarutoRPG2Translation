@@ -7,7 +7,7 @@ block_cipher = None
 a = Analysis(
     ['tool.py'],
     pathex=[],
-    binaries=[('ndstool.exe', '.'), ('xdelta.exe', '.'), ('armips.exe', '.')],
+    binaries=[],
     datas=[('bin_patch.asm', '.')],
     hiddenimports=['pkg_resources.py2_warn'],
     hookspath=[],
@@ -41,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico',
+    icon=['icon.ico'],
 )
