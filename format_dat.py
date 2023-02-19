@@ -362,6 +362,8 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
                 else:
                     colorcode = "c" + common.toHex(b2)
                 sjis += "<" + colorcode + ">"
+            elif b1 == 0x2:
+                sjis += "<u" + str(b2) + ">"
             elif b1 == 0x5:
                 sjis += "<w" + str(b2) + ">"
             elif b1 == 0x6:
@@ -381,8 +383,6 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
                 add = "small_" if b1 == 0xf else ""
                 sjis += "<" + add + speakercode + ">"
             elif b1 == 0x13:
-                if not allowunk:
-                    return ""
                 sjis += "<13" + common.toHex(b2) + ">"
             elif b1 == 0x14:
                 b3 = f.readByte()
@@ -414,6 +414,10 @@ def writeShiftJISBIN(f, s, maxlen=0, encoding="shift_jis"):
 
 def writeShiftJIS(f, s, maxlen=-1, silent=False):
     common.logDebug("Writing", s, "at", common.toHex(f.tell()))
+    s = s.replace("'", "[")
+    s = s.replace("\"", "]")
+    s = s.replace("“", "{")
+    s = s.replace("”", "}")
     s = s.replace("～", "〜")
     s = s.replace("$$$", "$$<04>")
     s = s.replace("$$", "<03><01>")
@@ -476,7 +480,8 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                 i += 2
                 f.writeByte(0xe)
                 f.writeByte(int(code, 16))
-            elif code.startswith("w"):
+            elif code.startswith("w") or code.startswith("u"):
+                codestart = code[0]
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
                         common.logError("Line too long", s, maxlen)
@@ -484,7 +489,10 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                     break
                 code = code[1:]
                 i += 2
-                f.writeByte(0x5)
+                if codestart == "w":
+                    f.writeByte(0x5)
+                else:
+                    f.writeByte(0x2)
                 f.writeByte(int(code))
             elif code == "instant":
                 if maxlen > 0 and i + 2 > maxlen:

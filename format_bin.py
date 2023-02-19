@@ -4,8 +4,8 @@ from typing import final
 import format_dat
 from hacktools import common, nds
 
-binrange = [(0x88f54, 0x92c00)]
-freeranges = [(0x92fc0+0x600, 0x92fc0+0x1000)]
+binrange = [(0x88f54, 0x9118c), (0x91194, 0x91978), (0x91998, 0x92c00)]
+freeranges = [(0x92fc0+0x600, 0x92fc0+0x1000, True)]
 
 
 def extract(data):
@@ -13,7 +13,7 @@ def extract(data):
     binout = data + "bin_output.txt"
     fontout = data + "font_output.txt"
 
-    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN)
+    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN, writepos=True)
     common.logMessage("Extracting FONT to", fontout, "...")
     with codecs.open(fontout, "w", "utf-8") as out:
         with common.Stream(binfile, "rb") as f:
@@ -41,5 +41,7 @@ def repack(data):
         for c in section:
             f.write(c.replace("～", "〜").encode("shift_jis"))
             f.writeUShort(int(section[c][0]))
+        f.writeUShort(0)
+        f.writeUShort(8)
     nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=0x1ff9000 - 0x92fc0, nocopy=True)
     common.armipsPatch(common.bundledFile("bin_patch.asm"))

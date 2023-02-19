@@ -7,7 +7,6 @@
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
   .import "NarutoRPG2Data/fontdata.bin"
-  .dw 0
   .align
 
   IS_ASCII:
