@@ -2,11 +2,14 @@
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
-  .area 0x600
+  .area 0x700
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
   .import "NarutoRPG2Data/fontdata.bin"
+  .align
+  SJIS_LOOKUP_SMALL:
+  .import "NarutoRPG2Data/fontdatasmall.bin"
   .align
 
   IS_ASCII:
@@ -17,30 +20,33 @@
   ;r3 = first byte
   ;r2 = second byte
   CONVERT_ASCII:
-  mov r1,0x0
   push {r0-r1,r4}
+  mov r4,0x0
   ;Set IS_ASCII to 0 and check
   ldr r0,=IS_ASCII
   cmp r3,0x7f
-  strge r1,[r0]
+  strge r4,[r0]
   bge @@return
   ;Return the SJIS character
-  ldr r2,=SJIS_LOOKUP
+  cmp r1,0x0
+  ldreq r2,=SJIS_LOOKUP
+  ldrne r2,=SJIS_LOOKUP_SMALL
   sub r3,r3,0x20
   lsl r3,r3,0x2
   add r2,r2,r3
   ldrb r3,[r2]
   ldrb r2,[r2,0x1]
   ;Set IS_ASCII to 1
-  mov r1,0x1
-  str r1,[r0]
+  mov r4,0x1
+  str r4,[r0]
   @@return:
   ;Save the character
   mov r4,r2,lsl 8
   orr r4,r4,r3
   str r4,[r0,0x4]
   pop {r0-r1,r4}
-  b CONVERT_ASCII_RET
+  mov r1,0x0
+  bx lr
   .pool
 
   CHECK_ASCII:
@@ -51,7 +57,7 @@
   addeq r0,r0,0x2
   addne r0,r0,0x1
   pop {r1}
-  b CHECK_ASCII_RET
+  bx lr
   .pool
 
   VWF_DATA:
@@ -69,9 +75,24 @@
   .db 0
   .align
 
-  VWF_BEGIN:
+  VWF_BEGIN_BIG:
   sub sp,sp,0x8
-  push {r0-r4}
+  push {r2,lr}
+  ldr r2,=SJIS_LOOKUP
+  bl VWF_BEGIN
+  pop {r2,lr}
+  bx lr
+
+  VWF_BEGIN_SMALL:
+  sub sp,sp,0x8
+  push {r2,lr}
+  ldr r2,=SJIS_LOOKUP_SMALL
+  bl VWF_BEGIN
+  pop {r2,lr}
+  bx lr
+
+  VWF_BEGIN:
+  push {r0,r1,r4}
   ldr r0,=VWF_DATA
   mov r1,0x0
   strb r1,[r0,0x2]
@@ -81,7 +102,6 @@
   cmp r1,0x0
   beq @@noascii
   ldr r3,[r3,0x4]
-  ldr r2,=SJIS_LOOKUP
   mov r1,0x8
   @@loop:
   ldrh r4,[r2]
@@ -94,44 +114,52 @@
   ldrh r1,[r2,0x2]
   strb r1,[r0,0x1]
   @@return:
-  pop {r0-r4}
-  b VWF_BEGIN_RET
+  pop {r0,r1,r4}
+  bx lr
   @@noascii:
   mov r1,0x8
   strb r1,[r0,0x1]
   b @@return
   .pool
 
-  ;original: strb r2,[r3],0x1
-  VWF:
-  push {r0-r4}
+  .macro vwf,reg,amount
+  push {r0-r2,r4,reg}
   ldr r0,=VWF_DATA
   ;Check if we need to draw in the previous glyph
   ldrb r1,[r0,0x4]
   cmp r1,0x1
-  subeq r3,r3,0x40
+  subeq reg,reg,amount
   ;Increase graphics ptr by the Character start / 2
   ldrb r1,[r0,0x0]
   mov r4,r1,lsr 1
-  add r3,r3,r4
+  add reg,reg,r4
   ;Set r1 to char start + current char
   ldrb r4,[r0,0x2]
   add r1,r1,r4
-  ;If r1 >= 8, draw in the next glyph (+0x40) but go up one row (-0x4)
+  ;If r1 >= 8, draw in the next glyph (-4 to go up one row)
   cmp r1,0x8
-  addge r3,r3,0x40 - 0x4
+  addge reg,reg,amount - 0x4
   ;Store the actual pixel data
-  strb r2,[r3]
+  strb r2,[reg]
   ;Increase r4 by 2, but set to 0 if 8
   add r4,r4,0x2
   cmp r4,0x8
   moveq r4,0x0
   strb r4,[r0,0x2]
   ;Return
-  pop {r0-r4}
-  add r3,r3,0x1
-  b VWF_RET
+  pop {r0-r2,r4,reg}
+  add reg,reg,0x1
+  bx lr
   .pool
+  .endmacro
+
+  ;original: strb r2,[r3],0x1
+  VWF:
+  vwf r3,0x40
+
+  ;original: strb r2,[r12],0x1
+  VWF_SMALL:
+  vwf r12,0x20
 
   VWF_END:
   push {r0-r2}
@@ -178,7 +206,7 @@
   @@pop:
   pop {r0-r2}
   add sp,sp,0x8
-  b VWF_END_RET
+  bx lr
   ;Clean up everything except the "move to next tile" part
   @@cleanup:
   mov r1,0x0
@@ -189,29 +217,36 @@
   b @@pop
   .pool
 
-  VWF_INCREASE:
+  .macro vwf_increase,reg,ret,noret,amount,loopn
   ldr r0,=VWF_DATA
   ldrb r1,[r0,0x3]
   cmp r1,0x1
-  ldrne r0,[r11,r9]
-  bne VWF_DONT_INCREASE
+  ldrne r0,[reg,r9]
+  bne noret
   mov r1,0x0
   strb r1,[r0,0x3]
-  ldr r0,[r11,r9]
+  ldr r0,[reg,r9]
   ;Fill the new glyph with 0x11
   push {r0-r2}
-  add r0,r0,0x40
+  add r0,r0,amount
   mov r1,0x0
   ldr r2,=0x11111111
   @@loop:
   str r2,[r0]
   add r0,r0,0x4
   add r1,r1,0x1
-  cmp r1,0x10
+  cmp r1,loopn
   bne @@loop
   pop {r0-r2}
-  b VWF_INCREASE_RET
+  b ret
   .pool
+  .endmacro
+
+  VWF_INCREASE:
+  vwf_increase r11,VWF_INCREASE_RET,VWF_DONT_INCREASE,0x40,0x10
+
+  VWF_SMALL_INCREASE:
+  vwf_increase r8,VWF_SMALL_INCREASE_RET,VWF_SMALL_DONT_INCREASE,0x20,0x8
 
   CHECK_NEXT_CHAR:
   push {r0-r1}
@@ -249,18 +284,21 @@
 .open "NarutoRPG2Data/repack/arm9.bin",0x02000000
   ;Hook the function that reads characters to convert ASCII to SJIS
   .org 0x02025d50
-  b CONVERT_ASCII
-  CONVERT_ASCII_RET:
+  bl CONVERT_ASCII
+  .org 0x02025e14
+  bl CONVERT_ASCII
 
   ;Only move pointer by 1 if the character was ascii
   .org 0x020279f0
-  b CHECK_ASCII
-  CHECK_ASCII_RET:
+  bl CHECK_ASCII
 
   ;Hook before a glyph is rendered
   .org 0x02025ecc
-  b VWF_BEGIN
-  VWF_BEGIN_RET:
+  bl VWF_BEGIN_BIG
+
+  ;Hook before a small glyph is rendered
+  .org 0x02025f8c
+  bl VWF_BEGIN_SMALL
 
   ;Replace the glyph rendering
   .org 0x02025f3c
@@ -274,18 +312,37 @@
   mul r12,r2,r4
   and r2,r14,r0
   orr r2,r2,r12
-  ;strb r2,[r3],0x1
-  b VWF
-  VWF_RET:
+  bl VWF
   add r5,r5,0x1
   cmp r6,0x40
   blt @loop
   .endarea
 
+  ;Replace the small glyph rendering
+  .org 0x02026008
+  .area 12*4,0x0
+  mov r0,0x11
+  mov r1,0x22
+  @small_loop:
+  ldrb r14,[r6]
+  add r5,r5,0x1
+  and r2,r14,r1
+  mul r3,r2,r4
+  and r2,r14,r0
+  orr r2,r2,r3
+  bl VWF_SMALL
+  add r6,r6,0x1
+  cmp r5,0x20
+  blt @small_loop
+  .endarea
+
   ;Hook after a glyph has been rendered
   .org 0x02025f6c
-  b VWF_END
-  VWF_END_RET:
+  bl VWF_END
+
+  ;Hook after a small glyph has been rendered
+  .org 0x02026038
+  bl VWF_END
 
   ;Check if we need to skip this section
   .org 0x02027910
@@ -293,9 +350,13 @@
   VWF_INCREASE_RET:
   .org 0x0202797c
   VWF_DONT_INCREASE:
-  ;Treat alt text the same as normal text, not sure this is needed
-  .org 0x020278f0
-  beq 0x020278f8
+
+  ;Check if we need to skip this section (small font)
+  .org 0x02027998
+  b VWF_SMALL_INCREASE
+  VWF_SMALL_INCREASE_RET:
+  .org 0x020279dc
+  VWF_SMALL_DONT_INCREASE:
 
   ;Store the next char to check if we need to clean up the VWF
   .org 0x020278a4

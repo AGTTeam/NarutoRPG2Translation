@@ -54,18 +54,28 @@ def repack(data):
     common.logMessage("Repacking FONT from", workfolder, "...")
     for i in range(len(fontfiles)):
         fontfolder = workfont + fontfiles[i] + "/"
-        if os.path.isdir(fontfolder):
+        if os.path.isdir(fontfolder) or i == 3:
             common.copyFile(workfolder.replace("work_", "out_") + "sys/bg/" + fontfiles[i] + ".png", workfolder + "sys/bg/" + fontfiles[i] + ".png")
             imgfile = workfolder + "sys/bg/" + fontfiles[i] + ".png"
             img = Image.open(imgfile)
             img = img.convert("RGBA")
             height = 16 if i <= 1 else 8
             for j in range(img.height // height):
-                fontimg = fontfolder + str(j).zfill(3) + ".png"
+                if i != 3:
+                    fontimg = fontfolder + str(j).zfill(3) + ".png"
+                else:
+                    fontimg = workfont + fontfiles[i - 1] + "/" + str(j).zfill(3) + ".png"
                 if os.path.isfile(fontimg):
                     crop = Image.open(fontimg)
                     crop = crop.convert("RGBA")
-                    img.paste(crop, (0, height * j), crop)
+                    # The 4th font is just a copy of the 3rd with transparency instead of a white background
+                    if i == 3:
+                        pixels = crop.load()
+                        for x in range(crop.width):
+                            for y in range(crop.height):
+                                if pixels[x, y] == (248, 248, 248, 255) or pixels[x, y] == (255, 255, 255, 255):
+                                    pixels[x, y] = (0, 0, 0, 0)
+                    img.paste(crop, (0, height * j))
             img.save(imgfile, "PNG")
     common.logMessage("Done!")
     common.logMessage("Repacking ACG from", workfolder, "...")

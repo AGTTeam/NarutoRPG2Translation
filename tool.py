@@ -5,7 +5,7 @@ import ndspy.soundArchive
 import ndspy.soundStream
 from hacktools import common, nds
 
-version = "0.9.0"
+version = "0.10.0"
 data = "NarutoRPG2Data/"
 romfile = data + "naruto.nds"
 rompatch = data + "naruto_patched.nds"
@@ -28,7 +28,7 @@ def extract(rom, bin, dat, img, en):
         datafolder = datafolder.replace("Data/", "en" + str(en) + "/")
     all = not rom and not bin and not dat and not img
     if all or rom:
-        nds.extractRom(romfile.replace(data, datafolder), infolder.replace(data, datafolder), outfolder.replace(data, datafolder))
+        nds.extractRom(romfile.replace(data, datafolder), infolder.replace(data, datafolder), outfolder.replace(data, datafolder) if en == 0 else "")
     if all or bin:
         import format_bin
         format_bin.extract(datafolder)
@@ -95,6 +95,7 @@ def repack(no_rom, bin, dat, img, snd):
             common.mergeFolder(replacefolder, outfolder)
         nds.editBannerTitle(bannerfile, "Naruto RPG 2\n~Chidori VS Rasengan~\nTOMY")
         nds.repackRom(romfile, rompatch, outfolder, patchfile)
+
 
 if __name__ == "__main__":
     click.echo("NarutoRPG2Translation version " + version)
