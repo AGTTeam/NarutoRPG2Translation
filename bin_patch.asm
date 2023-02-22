@@ -12,9 +12,41 @@
   .import "NarutoRPG2Data/fontdatasmall.bin"
   .align
 
-  IS_ASCII:
+  VWF_DATA_SIZE equ 12
+  VWF_DATA:
+  .dw VWF_DATA
+  ;Character start (0-6)
+  VWF_CHAR_START equ 0
+  .db 0
+  ;Character length (2,4,6,8)
+  VWF_CHAR_LENGTH equ 1
+  .db 0
+  ;Current character x (0,2,4,6)
+  VWF_CHAR_X equ 2
+  .db 0
+  ;Need to increase position after drawing glyph
+  VWF_DO_INCREASE equ 3
+  .db 0
+  ;Draw in the previous tile
+  VWF_DRAW_PREVIOUS equ 4
+  .db 0
+  ;Clean up everything after drawing
+  VWF_CLEAN equ 5
+  .db 0
+  ;1 if we're drawing ASCII
+  VWF_IS_ASCII equ 6
+  .db 0
+  VWF_PLACEHOLDER equ 7
+  .db 0
+  VWF_CHAR equ 8
   .dw 0
-  .dw 0
+  .dw 0 :: .dw 0 :: .dw 0
+  .align
+
+  .macro load_vwf_data,reg
+  ldr reg,=VWF_DATA
+  ldr reg,[reg]
+  .endmacro
 
   ;r0 = str ptr
   ;r3 = first byte
@@ -22,11 +54,10 @@
   CONVERT_ASCII:
   push {r0-r1,r4}
   mov r4,0x0
-  ;Set IS_ASCII to 0 and check
-  ldr r0,=IS_ASCII
+  ;Set VWF_IS_ASCII to 0 and check
+  load_vwf_data r0
   cmp r3,0x7f
-  strge r4,[r0]
-  bge @@return
+  bge @@store_and_ret
   ;Return the SJIS character
   cmp r1,0x0
   ldreq r2,=SJIS_LOOKUP
@@ -36,14 +67,15 @@
   add r2,r2,r3
   ldrb r3,[r2]
   ldrb r2,[r2,0x1]
-  ;Set IS_ASCII to 1
+  ;Set VWF_IS_ASCII to 1
   mov r4,0x1
-  str r4,[r0]
+  @@store_and_ret:
+  strb r4,[r0,VWF_IS_ASCII]
   @@return:
   ;Save the character
   mov r4,r2,lsl 8
   orr r4,r4,r3
-  str r4,[r0,0x4]
+  str r4,[r0,VWF_CHAR]
   pop {r0-r1,r4}
   mov r1,0x0
   bx lr
@@ -51,29 +83,14 @@
 
   CHECK_ASCII:
   push {r1}
-  ldr r1,=IS_ASCII
-  ldr r1,[r1]
+  load_vwf_data r1
+  ldrb r1,[r1,VWF_IS_ASCII]
   cmp r1,0x0
   addeq r0,r0,0x2
   addne r0,r0,0x1
   pop {r1}
   bx lr
   .pool
-
-  VWF_DATA:
-  ;Character start (0-6)
-  .db 0
-  ;Character length (2,4,6,8)
-  .db 0
-  ;Current character x (0,2,4,6)
-  .db 0
-  ;Need to increase position after drawing glyph
-  .db 0
-  ;Draw in the previous tile
-  .db 0
-  ;Clean up everything after drawing
-  .db 0
-  .align
 
   VWF_BEGIN_BIG:
   sub sp,sp,0x8
@@ -93,15 +110,14 @@
 
   VWF_BEGIN:
   push {r0,r1,r4}
-  ldr r0,=VWF_DATA
+  load_vwf_data r0
   mov r1,0x0
-  strb r1,[r0,0x2]
+  strb r1,[r0,VWF_CHAR_X]
   ;Get the VWF value
-  ldr r3,=IS_ASCII
-  ldr r1,[r3,0x0]
+  ldrb r1,[r0,VWF_IS_ASCII]
   cmp r1,0x0
   beq @@noascii
-  ldr r3,[r3,0x4]
+  ldr r3,[r0,VWF_CHAR]
   mov r1,0x8
   @@loop:
   ldrh r4,[r2]
@@ -112,29 +128,29 @@
   bne @@loop
   @@found:
   ldrh r1,[r2,0x2]
-  strb r1,[r0,0x1]
+  strb r1,[r0,VWF_CHAR_LENGTH]
   @@return:
   pop {r0,r1,r4}
   bx lr
   @@noascii:
   mov r1,0x8
-  strb r1,[r0,0x1]
+  strb r1,[r0,VWF_CHAR_LENGTH]
   b @@return
   .pool
 
   .macro vwf,reg,amount
   push {r0-r2,r4,reg}
-  ldr r0,=VWF_DATA
+  load_vwf_data r0
   ;Check if we need to draw in the previous glyph
-  ldrb r1,[r0,0x4]
+  ldrb r1,[r0,VWF_DRAW_PREVIOUS]
   cmp r1,0x1
   subeq reg,reg,amount
   ;Increase graphics ptr by the Character start / 2
-  ldrb r1,[r0,0x0]
+  ldrb r1,[r0,VWF_CHAR_START]
   mov r4,r1,lsr 1
   add reg,reg,r4
   ;Set r1 to char start + current char
-  ldrb r4,[r0,0x2]
+  ldrb r4,[r0,VWF_CHAR_X]
   add r1,r1,r4
   ;If r1 >= 8, draw in the next glyph (-4 to go up one row)
   cmp r1,0x8
@@ -145,7 +161,7 @@
   add r4,r4,0x2
   cmp r4,0x8
   moveq r4,0x0
-  strb r4,[r0,0x2]
+  strb r4,[r0,VWF_CHAR_X]
   ;Return
   pop {r0-r2,r4,reg}
   add reg,reg,0x1
@@ -163,14 +179,14 @@
 
   VWF_END:
   push {r0-r2}
-  ldr r0,=VWF_DATA
+  load_vwf_data r0
   mov r1,0x0
-  strb r1,[r0,0x4]
-  ldrb r1,[r0,0x0]
-  ldrb r2,[r0,0x1]
+  strb r1,[r0,VWF_DRAW_PREVIOUS]
+  ldrb r1,[r0,VWF_CHAR_START]
+  ldrb r2,[r0,VWF_CHAR_LENGTH]
   ;Add character length to character start
   add r1,r1,r2
-  strb r1,[r0,0x0]
+  strb r1,[r0,VWF_CHAR_START]
   ;Check if the value was 0 (r1 == r2)
   cmp r1,r2
   beq @@waszero
@@ -179,28 +195,28 @@
   blt @@lessthan8
   ;Move to the next 8x16 space and draw in the previous glyph only if r1-8 > 0
   sub r1,r1,0x8
-  strb r1,[r0,0x0]
+  strb r1,[r0,VWF_CHAR_START]
   cmp r1,0x0
   beq @@return
   mov r1,0x1
-  strb r1,[r0,0x3]
+  strb r1,[r0,VWF_DO_INCREASE]
   @@lessthan8:
   mov r1,0x1
-  strb r1,[r0,0x4]
+  strb r1,[r0,VWF_DRAW_PREVIOUS]
   b @@return
   @@waszero:
   ;If the value was 0, we need to move regardless, and set it to 0 if it's 8
   cmp r1,0x8
   mov r1,0x0
   movlt r1,0x1
-  strb r1,[r0,0x4]
+  strb r1,[r0,VWF_DRAW_PREVIOUS]
   mov r1,0x1
-  strb r1,[r0,0x3]
+  strb r1,[r0,VWF_DO_INCREASE]
   bne @@return
   mov r1,0x0
-  strb r1,[r0,0x0]
+  strb r1,[r0,VWF_CHAR_START]
   @@return:
-  ldrb r1,[r0,0x5]
+  ldrb r1,[r0,VWF_CLEAN]
   cmp r1,0x1
   beq @@cleanup
   @@pop:
@@ -210,21 +226,22 @@
   ;Clean up everything except the "move to next tile" part
   @@cleanup:
   mov r1,0x0
-  strb r1,[r0,0x0]
-  strb r1,[r0,0x1]
-  strb r1,[r0,0x2]
-  str r1,[r0,0x4]
+  strb r1,[r0,VWF_CHAR_START]
+  strb r1,[r0,VWF_CHAR_LENGTH]
+  strb r1,[r0,VWF_CHAR_X]
+  strb r1,[r0,VWF_DRAW_PREVIOUS]
+  strb r1,[r0,VWF_CLEAN]
   b @@pop
   .pool
 
   .macro vwf_increase,reg,ret,noret,amount,loopn
-  ldr r0,=VWF_DATA
-  ldrb r1,[r0,0x3]
+  load_vwf_data r0
+  ldrb r1,[r0,VWF_DO_INCREASE]
   cmp r1,0x1
   ldrne r0,[reg,r9]
   bne noret
   mov r1,0x0
-  strb r1,[r0,0x3]
+  strb r1,[r0,VWF_DO_INCREASE]
   ldr r0,[reg,r9]
   ;Fill the new glyph with 0x11
   push {r0-r2}
@@ -273,9 +290,9 @@
   pop {r0-r1}
   b 0x02025cfc
   @@cleanup:
-  ldr r0,=VWF_DATA
+  load_vwf_data r0
   mov r1,0x1
-  strb r1,[r0,0x5]
+  strb r1,[r0,VWF_CLEAN]
   b @@return
   .pool
   .endarea
