@@ -13,18 +13,25 @@ def extract(data):
     binout = data + "bin_output.txt"
     fontout = data + "font_output.txt"
 
-    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN, writepos=True)
+    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN, writedupes=True, writepos=True)
     common.logMessage("Extracting FONT to", fontout, "...")
     with codecs.open(fontout, "w", "utf-8") as out:
         with common.Stream(binfile, "rb") as f:
             f.seek(0x8b068)
+            entries = []
             while f.tell() < 0x8c048:
                 charcode = f.read(2)[::-1]
                 f.seek(-2, 1)
                 charcodehex = f.readUShort()
                 index = f.readUShort()
                 common.logDebug(common.toHex(f.tell()), common.toHex(charcodehex), common.toHex(index))
-                out.write(charcode.decode("shift_jis") + "=" + str(index) + "\n")
+                entries.append((charcode.decode("shift_jis"), index))
+            last = -1
+            for entry in sorted(entries, key=lambda tup: tup[1]):
+                if entry[1] == last:
+                    continue
+                last = entry[1]
+                out.write(entry[0] + "=" + str(entry[1]) + "\n")
     common.logMessage("Done!")
 
 

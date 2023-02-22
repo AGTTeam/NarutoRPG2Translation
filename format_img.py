@@ -51,7 +51,7 @@ def repack(data):
     workfolder = data + "work_ACG/"
     workfont = data + "work_FONT/"
 
-    common.logMessage("Repacking FONT from", workfolder, "...")
+    common.logMessage("Repacking FONT from", workfont, "...")
     for i in range(len(fontfiles)):
         fontfolder = workfont + fontfiles[i] + "/"
         if os.path.isdir(fontfolder) or i == 3:
@@ -153,6 +153,9 @@ def readImage(infolder, file, nob):
         pallen = size
         colornum = 0x10
         palettes = []
+        if "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file or "sys_bg_a_004" in file:
+            colornum = 4
+            pallen = 8
         for i in range(pallen // (colornum * 2)):
             palette = []
             for j in range(colornum):
