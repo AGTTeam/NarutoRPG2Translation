@@ -105,9 +105,6 @@ def repack(data):
         fixedsize, maxsize = fixedLength(filename)
         if file.startswith("param/") and fixedsize == 0:
             continue
-        if "msg_menufield" in file:
-            # This file breaks things, let's skip it for now
-            continue
         with common.Stream(datin + file, "rb") as fin:
             with common.Stream(datout + file, "rb+") as f:
                 if fixedsize > 0:
@@ -242,7 +239,7 @@ def fixedLength(file):
             maxsize = size - 1
     elif file.startswith("param/item_data"):
         size = 0xbc
-        maxsize = 0x1f
+        maxsize = 0x16
     elif "jyutu_data" in file:
         size = 0x2c
         maxsize = 0x1f

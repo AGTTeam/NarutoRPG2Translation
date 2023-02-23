@@ -14,7 +14,7 @@
 
   VWF_DATA_SIZE equ 12
   VWF_DATA:
-  .dw VWF_DATA
+  .dw VWF_DATA + 4
   ;Character start (0-6)
   VWF_CHAR_START equ 0
   .db 0
@@ -281,6 +281,9 @@
   ;Cleanup on symbol
   cmp r1,0xe
   beq @@cleanup
+  ;Cleanup on item symbol
+  cmp r1,0x13
+  beq @@cleanup
   ;For colors, we need to check the next character as well since it might be at the end of a line
   cmp r1,0x7
   addeq r0,r0,0x2
@@ -294,6 +297,27 @@
   mov r1,0x1
   strb r1,[r0,VWF_CLEAN]
   b @@return
+  .pool
+
+  ;Move to a separate VWF data struct since this text is only rendered a character every few frames
+  VWF_DIALOG_BEGIN:
+  push {r0-r1}
+  ldr r0,=VWF_DATA
+  add r1,r0,0x4 + VWF_DATA_SIZE
+  str r1,[r0]
+  pop {r0-r1}
+  mov r4,0x4000
+  bx lr
+
+  ;Move back to the normal VWF data
+  VWF_DIALOG_END:
+  push {r0-r1}
+  ldr r0,=VWF_DATA
+  add r1,r0,0x4
+  str r1,[r0]
+  pop {r0-r1}
+  add sp,sp,0x4
+  bx lr
   .pool
   .endarea
 .close
@@ -378,6 +402,12 @@
   ;Store the next char to check if we need to clean up the VWF
   .org 0x020278a4
   bl CHECK_NEXT_CHAR
+
+  ;Hook before and after a timed dialog is rendered
+  .org 0x02026d08
+  bl VWF_DIALOG_BEGIN
+  .org 0x02026d2c
+  bl VWF_DIALOG_END
 
   ;Don't check for line length limits
   .org 0x020278c4
