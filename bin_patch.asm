@@ -2,7 +2,7 @@
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
-  .area 0x700
+  .area 0x750
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
@@ -138,44 +138,46 @@
   b @@return
   .pool
 
-  .macro vwf,reg,amount
-  push {r0-r2,r4,reg}
+  .macro vwf,reg_data,reg_pos,reg_n,amount
+  push {r0-r2,r4,r7,reg_data}
   load_vwf_data r0
   ;Check if we need to draw in the previous glyph
   ldrb r1,[r0,VWF_DRAW_PREVIOUS]
   cmp r1,0x1
-  subeq reg,reg,amount
+  subeq reg_data,reg_data,amount
   ;Increase graphics ptr by the Character start / 2
   ldrb r1,[r0,VWF_CHAR_START]
   mov r4,r1,lsr 1
-  add reg,reg,r4
+  add reg_data,reg_data,r4
   ;Set r1 to char start + current char
   ldrb r4,[r0,VWF_CHAR_X]
   add r1,r1,r4
   ;If r1 >= 8, draw in the next glyph (-4 to go up one row)
   cmp r1,0x8
-  addge reg,reg,amount - 0x4
+  addge reg_data,reg_data,amount - 0x4
   ;Store the actual pixel data
-  strb r2,[reg]
+  strb r2,[reg_data]
+  @@return:
   ;Increase r4 by 2, but set to 0 if 8
   add r4,r4,0x2
   cmp r4,0x8
-  moveq r4,0x0
+  subge r4,r4,0x8
   strb r4,[r0,VWF_CHAR_X]
   ;Return
-  pop {r0-r2,r4,reg}
-  add reg,reg,0x1
+  pop {r0-r2,r4,r7,reg_data}
+  add reg_data,reg_data,0x1
+  add reg_pos,reg_pos,0x1
   bx lr
   .pool
   .endmacro
 
   ;original: strb r2,[r3],0x1
   VWF:
-  vwf r3,0x40
+  vwf r3,r5,r6,0x40
 
   ;original: strb r2,[r12],0x1
   VWF_SMALL:
-  vwf r12,0x20
+  vwf r12,r6,r5,0x20
 
   VWF_END:
   push {r0-r2}
@@ -348,13 +350,12 @@
   mov r1,0x22
   @loop:
   ldrb r14,[r5]
-  add r6,r6,0x1
   and r2,r14,r1
   mul r12,r2,r4
   and r2,r14,r0
   orr r2,r2,r12
   bl VWF
-  add r5,r5,0x1
+  add r6,r6,0x1
   cmp r6,0x40
   blt @loop
   .endarea
@@ -366,13 +367,12 @@
   mov r1,0x22
   @small_loop:
   ldrb r14,[r6]
-  add r5,r5,0x1
   and r2,r14,r1
   mul r3,r2,r4
   and r2,r14,r0
   orr r2,r2,r3
   bl VWF_SMALL
-  add r6,r6,0x1
+  add r5,r5,0x1
   cmp r5,0x20
   blt @small_loop
   .endarea
