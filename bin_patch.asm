@@ -417,4 +417,9 @@
   nop
   .org 0x020278dc
   nop
+
+  ;Extend main menu text boxes
+  .org 0x0203bed8
+  ;mov r0,0xc
+  mov r0,0xd
 .close
