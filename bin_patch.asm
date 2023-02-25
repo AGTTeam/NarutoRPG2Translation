@@ -280,6 +280,9 @@
   ;Cleanup on line break
   cmp r1,0xa
   beq @@cleanup
+  ;Cleanup on choice end
+  cmp r1,0xb
+  beq @@cleanup
   ;Cleanup on symbol
   cmp r1,0xe
   beq @@cleanup

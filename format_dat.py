@@ -156,7 +156,7 @@ def repack(data):
                                         usewordwrap = wordwrap2
                                 if "msgbattle/" in filename:
                                     maxlines = 1
-                                sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode)
+                                sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
                                 if sjissplit[j].count("|") > maxlines - 1:
                                     common.logWarning("Line \"" + sjissplit[j] + "\"has too many line breaks, splitting...")
                                     if maxlines == 2:
@@ -500,6 +500,16 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                 i += 2
                 f.writeByte(0x9)
                 f.writeByte(0x1)
+            elif code == "0B":
+                # For choices, there's an extra 0 byte after this
+                if maxlen > 0 and i + 2 > maxlen:
+                    if not silent:
+                        common.logError("Line too long", s, maxlen)
+                    failed = True
+                    break
+                i += 2
+                f.writeByte(0xb)
+                f.writeByte(0x0)
             else:
                 nbytes = len(code) // 2
                 if maxlen > 0 and i + nbytes > maxlen:
