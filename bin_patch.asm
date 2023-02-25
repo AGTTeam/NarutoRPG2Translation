@@ -2,7 +2,7 @@
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
-  .area 0x750
+  .area 0x800
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
@@ -10,6 +10,14 @@
   .align
   SJIS_LOOKUP_SMALL:
   .import "NarutoRPG2Data/fontdatasmall.bin"
+  .align
+
+  LOAD_STR:
+  .ascii "Load %s?" :: .db 0xa :: .asciiz "    Yes            No"
+  DELETE_STR:
+  .ascii "Delete %s?" :: .db 0xa :: .asciiz "    Yes            No"
+  OVERWRITE_STR:
+  .ascii "Overwrite %s?" :: .db 0xa :: .asciiz "    Yes            No"
   .align
 
   VWF_DATA_SIZE equ 12
@@ -56,6 +64,8 @@
   mov r4,0x0
   ;Set VWF_IS_ASCII to 0 and check
   load_vwf_data r0
+  cmp r3,0x0
+  beq @@store_and_ret
   cmp r3,0x7f
   bge @@store_and_ret
   ;Return the SJIS character
@@ -109,7 +119,7 @@
   bx lr
 
   VWF_BEGIN:
-  push {r0,r1,r4}
+  push {r0,r1,r3,r4}
   load_vwf_data r0
   mov r1,0x0
   strb r1,[r0,VWF_CHAR_X]
@@ -130,7 +140,7 @@
   ldrh r1,[r2,0x2]
   strb r1,[r0,VWF_CHAR_LENGTH]
   @@return:
-  pop {r0,r1,r4}
+  pop {r0,r1,r3,r4}
   bx lr
   @@noascii:
   mov r1,0x8
@@ -324,6 +334,17 @@
   add sp,sp,0x4
   bx lr
   .pool
+
+  LOAD_STR_SPRINTF:
+  ldr r1,=LOAD_STR
+  b LOAD_STR_SPRINTF_RET
+  DELETE_STR_SPRINTF:
+  ldr r1,=DELETE_STR
+  b DELETE_STR_SPRINTF_RET
+  OVERWRITE_STR_SPRINTF:
+  ldr r1,=OVERWRITE_STR
+  b OVERWRITE_STR_SPRINTF_RET
+  .pool
   .endarea
 .close
 
@@ -422,4 +443,15 @@
   .org 0x0203bed8
   ;mov r0,0xc
   mov r0,0xd
+
+  ;Change save/load string to move sprintf parameters
+  .org 0x02073260
+  b LOAD_STR_SPRINTF
+  LOAD_STR_SPRINTF_RET:
+  .org 0x02073824
+  b DELETE_STR_SPRINTF
+  DELETE_STR_SPRINTF_RET:
+  .org 0x02073528
+  b OVERWRITE_STR_SPRINTF
+  OVERWRITE_STR_SPRINTF_RET:
 .close
