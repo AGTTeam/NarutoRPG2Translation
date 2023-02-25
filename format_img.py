@@ -94,10 +94,14 @@ def repack(data):
         if os.path.isfile(workfolder + pngfile):
             ncgr, nscr, cells, palettes, mapfile = readImage(acgin, file, nob)
             if nscr is None and cells is None:
+                common.copyFile(acgin + file, acgout + file)
                 nitro.writeNCGR(acgout + file, ncgr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
             elif cells is None:
+                common.copyFile(acgin + file, acgout + file)
+                common.copyFile(acgin + mapfile, acgout + mapfile)
                 nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
             else:
+                common.copyFile(acgin + file, acgout + file)
                 nitro.writeNCER(acgout + file, "tempcell.bin", ncgr, cells, workfolder + pngfile, palettes)
     os.remove("tempcell.bin")
     common.logMessage("Done! Repacked", totfiles, "files")
@@ -213,6 +217,7 @@ def readImage(infolder, file, nob):
             nscr.maps = []
             for j in range((nscr.width // 8) * (nscr.height // 8)):
                 map = nitro.readMapData(f.readUShort())
+                map.oldpal = map.pal
                 map.pal = map.pal % len(palettes)
                 nscr.maps.append(map)
     # Read cells
