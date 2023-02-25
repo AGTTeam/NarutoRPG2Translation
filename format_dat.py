@@ -121,6 +121,9 @@ def repack(data):
                             f.seek(fin.tell())
                             sjis = getTranslation(sections, filename, readShiftJIS(fin))
                             writeShiftJIS(f, sjis, 0x36 - 2)
+                        elif "msg_menufieldcmd" in filename:
+                            sjisw = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
+                            writeShiftJIS(f, sjisw, maxsize)
                         else:
                             writeShiftJIS(f, sjis, maxsize)
                         i += 1
