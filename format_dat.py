@@ -18,7 +18,9 @@ def extract(data):
         common.logDebug("Processing", file)
         filesize = os.path.getsize(datfolder + file)
         outfile = file[4:] if file.startswith("msg/") else file
-        fixedsize, _ = fixedLength(file)
+        fixedsize = fixedmax = 0
+        if file in fixedfiles:
+            fixedsize, fixedmax = fixedfiles[file]
         if file.startswith("param/") and fixedsize == 0:
             continue
         common.makeFolders(outfolder + os.path.dirname(outfile))
@@ -27,23 +29,43 @@ def extract(data):
                 if fixedsize > 0:
                     i = 0
                     foundstr = []
+                    maxlen = 0
+                    maxlen2 = 0
+                    minlenzero = 0xffff
                     while True:
                         f.seek(i * fixedsize)
                         if f.tell() >= filesize:
                             break
                         sjis = readShiftJIS(f)
+                        strend = f.tell()
+                        # Check what the maximum length of the strings is
+                        strlen = strend - (i * fixedsize)
+                        if strlen > maxlen:
+                            maxlen = strlen
+                        while f.tell() < filesize and f.peek(1)[0] == 0:
+                            f.seek(1, 1)
+                        strlenzero = f.tell() - 1 - (i * fixedsize)
+                        if strlenzero < minlenzero:
+                            minlenzero = strlenzero
+                        f.seek(strend)
+                        # Write the string in the file
                         if sjis not in foundstr:
                             foundstr.append(sjis)
                             if sjis != "":
                                 out.write(sjis + "=\n")
+                        # This particular file has two strings for each item
                         if "msg_f_iteminst" in file:
                             f.seek(i * fixedsize + 0x6a)
                             sjis = readShiftJIS(f)
+                            strlen = f.tell() - (i * fixedsize + 0x6a)
+                            if strlen > maxlen2:
+                                maxlen2 = strlen
                             if sjis not in foundstr:
                                 foundstr.append(sjis)
                                 if sjis != "":
                                     out.write(sjis + "=\n")
                         i += 1
+                    common.logDebug("Maximum string length for", file, "is", common.toHex(maxlen), common.toHex(maxlen2), common.toHex(minlenzero))
                 else:
                     ptrnum = f.readUInt()
                     for i in range(ptrnum):
@@ -102,7 +124,9 @@ def repack(data):
             continue
         common.logDebug("Processing", file)
         filename = file[4:] if file.startswith("msg/") else file
-        fixedsize, maxsize = fixedLength(filename)
+        fixedsize = fixedmax = 0
+        if file in fixedfiles:
+            fixedsize, fixedmax = fixedfiles[file]
         if file.startswith("param/") and fixedsize == 0:
             continue
         with common.Stream(datin + file, "rb") as fin:
@@ -116,16 +140,16 @@ def repack(data):
                             break
                         sjis = getTranslation(sections, filename, readShiftJIS(fin))
                         if "msg_f_iteminst" in filename:
-                            writeShiftJIS(f, sjis, 0x6a - 2)
+                            writeShiftJIS(f, sjis, fixedmax)
                             fin.seek(i * fixedsize + 0x6a)
                             f.seek(fin.tell())
                             sjis = getTranslation(sections, filename, readShiftJIS(fin))
-                            writeShiftJIS(f, sjis, 0x36 - 2)
+                            writeShiftJIS(f, sjis, 0x35)
                         elif "msg_menufieldcmd" in filename:
                             sjisw = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
-                            writeShiftJIS(f, sjisw, maxsize)
+                            writeShiftJIS(f, sjisw, fixedmax)
                         else:
-                            writeShiftJIS(f, sjis, maxsize)
+                            writeShiftJIS(f, sjis, fixedmax)
                         i += 1
                 else:
                     ptrnum = fin.readUInt()
@@ -222,37 +246,29 @@ def readFontGlyphs(file):
     return glyphs
 
 
-def fixedLength(file):
-    size = 0
-    maxsize = 0
-    if "msginst" in file or "msgmenu" in file or "msgchrname" in file:
-        size = 0x6a
-        maxsize = size - 1
-        if "msgchrname" in file:
-            size = 0xc
-            maxsize = size - 1
-        elif "msg_menufield." in file:
-            size = 0x16
-            maxsize = size - 1
-        elif "msg_menujinkei" in file:
-            size = 0x36
-            maxsize = size - 1
-        elif "msg_f_iteminst" in file or "msg_f_jyutuinst" in file:
-            size = 0xa0
-            maxsize = size - 1
-    elif file.startswith("param/item_data"):
-        size = 0xbc
-        maxsize = 0x16
-    elif "jyutu_data" in file:
-        size = 0x2c
-        maxsize = 0x1f
-    elif "kumite_data" in file:
-        size = 0x4c
-        maxsize = 0x23
-    elif "mon_param" in file:
-        size = 0xd4
-        maxsize = 0x1f
-    return size, maxsize
+# A list of the files with fixed sizes and hardcoded lengths
+# The tuple is (item size, max str size)
+# The max values are pretty conservative to avoid issues
+fixedfiles = {
+    "msg/msgchrname/msg_chrname.dat": (0xc, 0xb),
+    "msg/msginst/msg_b_iteminst.dat": (0x6a, 0x34),
+    "msg/msginst/msg_b_jyutuinst.dat": (0x6a, 0x34),
+    "msg/msginst/msg_f_extraiteminst.dat": (0x6a, 0x5c),
+    "msg/msginst/msg_f_iteminst.dat": (0xa0, 0x54),
+    "msg/msginst/msg_f_jyutuinst.dat": (0xa0, 0x35),
+    "msg/msginst/msg_f_kumiteinst.dat": (0x6a, 0x64),
+    "msg/msginst/msg_fieldhelpinst.dat": (0x6a, 0x11),
+    "msg/msgmenu/msg_menudougu.dat": (0x6a, 0x31),
+    "msg/msgmenu/msg_menufield.dat": (0x16, 0xc),#0x15),
+    "msg/msgmenu/msg_menufieldcmd.dat": (0x6a, 0x5c),
+    "msg/msgmenu/msg_menujinkei.dat": (0x36, 0x34),
+    "msg/msgmenu/msg_menujyutu.dat": (0x6a, 0x25),
+    "msg/msgmenu/msg_menusoubi.dat": (0x6a, 0x2d),
+    "param/item_data.dat": (0xbc, 0x9),#0x19),
+    "param/jyutu_data.dat": (0x2c, 0x10),#0x19),
+    "param/kumite_data.dat": (0x4c, 0x23),
+    "param/mon_param.dat": (0xd4, 0x11),
+}
 
 
 speakercodes = {
@@ -412,6 +428,10 @@ def writeShiftJISBIN(f, s, maxlen=0, encoding="shift_jis"):
     return writeShiftJIS(f, s, maxlen, True)
 
 
+def logLongError(type, x, s, maxlen):
+    common.logError("Line", s, "too long while writing", type, str(x) + "/" + str(len(s)), "maxlen", str(maxlen))
+
+
 def writeShiftJIS(f, s, maxlen=-1, silent=False):
     common.logDebug("Writing", s, "at", common.toHex(f.tell()))
     s = s.replace("'", "[")
@@ -429,7 +449,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
         if c == "|":
             if maxlen > 0 and i + 1 > maxlen:
                 if not silent:
-                    common.logError("Line too long", s, maxlen)
+                    logLongError("0xa", x, s, maxlen)
                 failed = True
                 break
             f.writeByte(0xa)
@@ -441,7 +461,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
             if code in colorcodesrev:
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("<code>", x, s, maxlen)
                     failed = True
                     break
                 i += 2
@@ -450,7 +470,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
             elif code.startswith("small_") or code in speakercodesrev:
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("speaker", x, s, maxlen)
                     failed = True
                     break
                 i += 2
@@ -463,7 +483,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
             elif code.startswith("sound"):
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("sound", x, s, maxlen)
                     failed = True
                     break
                 code = code[5:]
@@ -473,7 +493,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
             elif code.startswith("symbol"):
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("symbol", x, s, maxlen)
                     failed = True
                     break
                 code = code[6:]
@@ -484,7 +504,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                 codestart = code[0]
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("w/u", x, s, maxlen)
                     failed = True
                     break
                 code = code[1:]
@@ -497,7 +517,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
             elif code == "instant":
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("instant", x, s, maxlen)
                     failed = True
                     break
                 i += 2
@@ -507,7 +527,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                 # For choices, there's an extra 0 byte after this
                 if maxlen > 0 and i + 2 > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("0xb", x, s, maxlen)
                     failed = True
                     break
                 i += 2
@@ -517,20 +537,21 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
                 nbytes = len(code) // 2
                 if maxlen > 0 and i + nbytes > maxlen:
                     if not silent:
-                        common.logError("Line too long", s, maxlen)
+                        logLongError("code", x, s, maxlen)
                     failed = True
                     break
                 i += nbytes
                 f.write(bytes.fromhex(code))
         else:
-            if maxlen > 0 and i + 2 > maxlen:
+            chardata = c.encode("shift_jis")
+            if maxlen > 0 and i + len(chardata) > maxlen:
                 if not silent:
-                    common.logError("Line too long", s, maxlen)
+                    logLongError("chr", x, s, maxlen)
                 failed = True
                 break
             x += 1
-            i += 2
-            f.write(c.encode("shift_jis"))
+            i += len(chardata)
+            f.write(chardata)
     f.writeByte(0)
     if not silent:
         common.logDebug("Done!")
