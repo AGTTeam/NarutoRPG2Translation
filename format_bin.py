@@ -5,7 +5,7 @@ import format_dat
 from hacktools import common, nds
 
 binrange = [(0x88f54, 0x9118c), (0x91194, 0x91978), (0x91998, 0x92c00)]
-freeranges = [(0x92fc0+0x800, 0x92fc0+0x1000, True)]
+freeranges = [(0x92fc0+0x1000, 0x92fc0+0x2000, True)]
 
 
 def extract(data):
@@ -13,7 +13,7 @@ def extract(data):
     binout = data + "bin_output.txt"
     fontout = data + "font_output.txt"
 
-    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN, writedupes=True, writepos=True)
+    nds.extractBIN(binrange, encoding="shift_jis", binin=binfile, binfile=binout, readfunc=format_dat.readShiftJISBIN, writedupes=True)
     common.logMessage("Extracting FONT to", fontout, "...")
     with codecs.open(fontout, "w", "utf-8") as out:
         with common.Stream(binfile, "rb") as f:
@@ -41,7 +41,9 @@ def repack(data):
     headerout = data + "repack/header.bin"
     binfile = data + "bin_input.txt"
     binout = data + "repack/arm9.bin"
-    nds.expandBIN(binin, binout, headerin, headerout, 0x1000, 0x1ff9000)
+
+    injectaddr = 0x01ff9000
+    nds.expandBIN(binin, binout, headerin, headerout, 0x2000, injectaddr)
     for post in ["", "small"]:
         with codecs.open(data + "fontconfig" + post + ".txt", "r", "utf-8") as f:
             section = common.getSection(f, "", inorder=True)
@@ -51,5 +53,5 @@ def repack(data):
                     f.writeUShort(int(c["value"]))
                 f.writeUShort(0)
                 f.writeUShort(8)
-    nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=0x1ff9000 - 0x92fc0, nocopy=True)
+    nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=injectaddr - 0x92fc0, nocopy=True)
     common.armipsPatch(common.bundledFile("bin_patch.asm"))

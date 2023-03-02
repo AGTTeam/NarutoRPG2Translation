@@ -55,6 +55,7 @@ def repack(data):
     for i in range(len(fontfiles)):
         fontfolder = workfont + fontfiles[i] + "/"
         if os.path.isdir(fontfolder) or i == 3:
+            common.makeFolders(workfolder + os.path.dirname("sys/bg/" + fontfiles[i] + ".png"))
             common.copyFile(workfolder.replace("work_", "out_") + "sys/bg/" + fontfiles[i] + ".png", workfolder + "sys/bg/" + fontfiles[i] + ".png")
             imgfile = workfolder + "sys/bg/" + fontfiles[i] + ".png"
             img = Image.open(imgfile)
