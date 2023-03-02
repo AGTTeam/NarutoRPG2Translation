@@ -2,7 +2,7 @@
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
-  .area 0x800
+  .area 0x1000
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
@@ -48,7 +48,8 @@
   .db 0
   VWF_CHAR equ 8
   .dw 0
-  .dw 0 :: .dw 0 :: .dw 0
+  ;Repeat one more time
+  .db 0 :: .db 0 :: .db 0 :: .db 0 :: .dw 0 :: .dw 0
   .align
 
   .macro load_vwf_data,reg
@@ -64,8 +65,8 @@
   mov r4,0x0
   ;Set VWF_IS_ASCII to 0 and check
   load_vwf_data r0
-  cmp r3,0x0
-  beq @@store_and_ret
+  cmp r3,0x20
+  blt @@store_and_ret
   cmp r3,0x7f
   bge @@store_and_ret
   ;Return the SJIS character
@@ -103,19 +104,19 @@
   .pool
 
   VWF_BEGIN_BIG:
-  sub sp,sp,0x8
   push {r2,lr}
   ldr r2,=SJIS_LOOKUP
   bl VWF_BEGIN
   pop {r2,lr}
+  sub sp,sp,0x8
   bx lr
 
   VWF_BEGIN_SMALL:
-  sub sp,sp,0x8
   push {r2,lr}
   ldr r2,=SJIS_LOOKUP_SMALL
   bl VWF_BEGIN
   pop {r2,lr}
+  sub sp,sp,0x8
   bx lr
 
   VWF_BEGIN:
@@ -149,45 +150,49 @@
   .pool
 
   .macro vwf,reg_data,reg_pos,reg_n,amount
-  push {r0-r2,r4,r7,reg_data}
-  load_vwf_data r0
+  ;We want to avoid touching the stack in this function since it's causing problems in some emulators
+  ;Probably due to the tight loop
+  ;Free registers: r7-r10
+  load_vwf_data r7
+  mov r10,reg_data
   ;Check if we need to draw in the previous glyph
-  ldrb r1,[r0,VWF_DRAW_PREVIOUS]
-  cmp r1,0x1
+  ldrb r8,[r7,VWF_DRAW_PREVIOUS]
+  cmp r8,0x1
   subeq reg_data,reg_data,amount
   ;Increase graphics ptr by the Character start / 2
-  ldrb r1,[r0,VWF_CHAR_START]
-  mov r4,r1,lsr 1
-  add reg_data,reg_data,r4
-  ;Set r1 to char start + current char
-  ldrb r4,[r0,VWF_CHAR_X]
-  add r1,r1,r4
+  ldrb r8,[r7,VWF_CHAR_START]
+  mov r9,r8,lsr 1
+  add reg_data,reg_data,r9
+  ;Set r8 to char start + current char
+  ldrb r9,[r7,VWF_CHAR_X]
+  add r8,r8,r9
   ;If r1 >= 8, draw in the next glyph (-4 to go up one row)
-  cmp r1,0x8
+  cmp r8,0x8
   addge reg_data,reg_data,amount - 0x4
   ;Store the actual pixel data
   strb r2,[reg_data]
-  @@return:
   ;Increase r4 by 2, but set to 0 if 8
-  add r4,r4,0x2
-  cmp r4,0x8
-  subge r4,r4,0x8
-  strb r4,[r0,VWF_CHAR_X]
+  add r9,r9,0x2
+  cmp r9,0x8
+  subge r9,r9,0x8
+  strb r9,[r7,VWF_CHAR_X]
   ;Return
-  pop {r0-r2,r4,r7,reg_data}
+  mov reg_data,r10
   add reg_data,reg_data,0x1
   add reg_pos,reg_pos,0x1
-  bx lr
-  .pool
   .endmacro
 
   ;original: strb r2,[r3],0x1
   VWF:
   vwf r3,r5,r6,0x40
+  b VWF_RET
+  .pool
 
   ;original: strb r2,[r12],0x1
   VWF_SMALL:
   vwf r12,r6,r5,0x20
+  b VWF_SMALL_RET
+  .pool
 
   VWF_END:
   push {r0-r2}
@@ -373,9 +378,20 @@
   .org 0x02025f8c
   bl VWF_BEGIN_SMALL
 
+  ;Push more registers in the draw_glyph function so we have more room to work with
+  .org 0x02025ec8
+  ;push {r4-r6,lr}
+  push {r4-r10,lr}
+  .org 0x02025f0c
+  ;pop {r4-r6,lr}
+  pop {r4-r10,lr}
+  .org 0x02025f70
+  ;pop {r4-r6,lr}
+  pop {r4-r10,lr}
+
   ;Replace the glyph rendering
   .org 0x02025f3c
-  .area 12*4,0x0
+  .area 12*4
   mov r0,0x11
   mov r1,0x22
   @loop:
@@ -384,15 +400,28 @@
   mul r12,r2,r4
   and r2,r14,r0
   orr r2,r2,r12
-  bl VWF
+  b VWF
+  VWF_RET:
   add r6,r6,0x1
   cmp r6,0x40
   blt @loop
+  nop
   .endarea
+
+  ;Push more registers in the draw_small_glyph function so we have more room to work with
+  .org 0x02025f88
+  ;push {r4-r6,lr}
+  push {r4-r10,lr}
+  .org 0x02025fcc
+  ;pop {r4-r6,lr}
+  pop {r4-r10,lr}
+  .org 0x0202603c
+  ;pop {r4-r6,lr}
+  pop {r4-r10,lr}
 
   ;Replace the small glyph rendering
   .org 0x02026008
-  .area 12*4,0x0
+  .area 12*4
   mov r0,0x11
   mov r1,0x22
   @small_loop:
@@ -401,10 +430,12 @@
   mul r3,r2,r4
   and r2,r14,r0
   orr r2,r2,r3
-  bl VWF_SMALL
+  b VWF_SMALL
+  VWF_SMALL_RET:
   add r5,r5,0x1
   cmp r5,0x20
   blt @small_loop
+  nop
   .endarea
 
   ;Hook after a glyph has been rendered
@@ -460,4 +491,30 @@
   .org 0x02073528
   b OVERWRITE_STR_SPRINTF
   OVERWRITE_STR_SPRINTF_RET:
+
+  ;Move the save/load location text left
+  .org 0x02072444
+  ;add r0,r0,0x14
+  add r0,r0,0x11
+
+  ;Move location text left
+  .org 0x0203b860
+  ;add r1,r6,2
+  add r1,r6,1
+
+  ;Move location textbox left
+  .org 0x0203bc84
+  ;mov r1,0x13
+  mov r1,0x10
+  .org 0x0203bc98
+  ;mov r1,0x13
+  mov r1,0x10
+  .org 0x0203bc48
+  ;mov r1,0x13
+  mov r1,0x10
+
+  ;Make the location textbox bigger
+  .org 0x0203b824
+  ;mov r3,0xe
+  mov r3,0x10
 .close
