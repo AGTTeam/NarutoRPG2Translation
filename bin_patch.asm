@@ -29,22 +29,21 @@
   ;Character length (2,4,6,8)
   VWF_CHAR_LENGTH equ 1
   .db 0
-  ;Current character x (0,2,4,6)
-  VWF_CHAR_X equ 2
-  .db 0
   ;Need to increase position after drawing glyph
-  VWF_DO_INCREASE equ 3
+  VWF_DO_INCREASE equ 2
   .db 0
   ;Draw in the previous tile
-  VWF_DRAW_PREVIOUS equ 4
+  VWF_DRAW_PREVIOUS equ 3
   .db 0
   ;Clean up everything after drawing
-  VWF_CLEAN equ 5
+  VWF_CLEAN equ 4
   .db 0
   ;1 if we're drawing ASCII
-  VWF_IS_ASCII equ 6
+  VWF_IS_ASCII equ 5
   .db 0
-  VWF_PLACEHOLDER equ 7
+  VWF_PLACEHOLDER equ 6
+  .db 0
+  VWF_PLACEHOLDER2 equ 7
   .db 0
   VWF_CHAR equ 8
   .dw 0
@@ -61,10 +60,8 @@
   ;r3 = first byte
   ;r2 = second byte
   CONVERT_ASCII:
-  push {r0-r1,r4}
-  mov r4,0x0
   ;Set VWF_IS_ASCII to 0 and check
-  load_vwf_data r0
+  mov r4,0x0
   cmp r3,0x20
   blt @@store_and_ret
   cmp r3,0x7f
@@ -81,25 +78,23 @@
   ;Set VWF_IS_ASCII to 1
   mov r4,0x1
   @@store_and_ret:
-  strb r4,[r0,VWF_IS_ASCII]
+  load_vwf_data r12
+  strb r4,[r12,VWF_IS_ASCII]
   @@return:
   ;Save the character
   mov r4,r2,lsl 8
   orr r4,r4,r3
-  str r4,[r0,VWF_CHAR]
-  pop {r0-r1,r4}
+  str r4,[r12,VWF_CHAR]
   mov r1,0x0
   bx lr
   .pool
 
   CHECK_ASCII:
-  push {r1}
-  load_vwf_data r1
-  ldrb r1,[r1,VWF_IS_ASCII]
-  cmp r1,0x0
+  load_vwf_data r2
+  ldrb r2,[r2,VWF_IS_ASCII]
+  cmp r2,0x0
   addeq r0,r0,0x2
   addne r0,r0,0x1
-  pop {r1}
   bx lr
   .pool
 
@@ -122,8 +117,6 @@
   VWF_BEGIN:
   push {r0,r1,r3,r4}
   load_vwf_data r0
-  mov r1,0x0
-  strb r1,[r0,VWF_CHAR_X]
   ;Get the VWF value
   ldrb r1,[r0,VWF_IS_ASCII]
   cmp r1,0x0
@@ -149,50 +142,52 @@
   b @@return
   .pool
 
-  .macro vwf,reg_data,reg_pos,reg_n,amount
-  ;We want to avoid touching the stack in this function since it's causing problems in some emulators
-  ;Probably due to the tight loop
-  ;Free registers: r7-r10
-  load_vwf_data r7
-  mov r10,reg_data
-  ;Check if we need to draw in the previous glyph
-  ldrb r8,[r7,VWF_DRAW_PREVIOUS]
-  cmp r8,0x1
-  subeq reg_data,reg_data,amount
-  ;Increase graphics ptr by the Character start / 2
-  ldrb r8,[r7,VWF_CHAR_START]
-  mov r9,r8,lsr 1
-  add reg_data,reg_data,r9
-  ;Set r8 to char start + current char
-  ldrb r9,[r7,VWF_CHAR_X]
-  add r8,r8,r9
-  ;If r1 >= 8, draw in the next glyph (-4 to go up one row)
-  cmp r8,0x8
-  addge reg_data,reg_data,amount - 0x4
-  ;Store the actual pixel data
-  strb r2,[reg_data]
-  ;Increase r4 by 2, but set to 0 if 8
-  add r9,r9,0x2
-  cmp r9,0x8
-  subge r9,r9,0x8
-  strb r9,[r7,VWF_CHAR_X]
-  ;Return
-  mov reg_data,r10
-  add reg_data,reg_data,0x1
-  add reg_pos,reg_pos,0x1
-  .endmacro
-
-  ;original: strb r2,[r3],0x1
   VWF:
-  vwf r3,r5,r6,0x40
-  b VWF_RET
-  .pool
-
-  ;original: strb r2,[r12],0x1
-  VWF_SMALL:
-  vwf r12,r6,r5,0x20
-  b VWF_SMALL_RET
-  .pool
+  ;r0 = 0x11
+  ;r1 = 0x22
+  ;r2 = src address
+  ;r3 = dst address
+  ;r4 = palette data
+  ;r11 = loop amount
+  ;Load values from the font data
+  load_vwf_data r5
+  ;Check if we need to draw in the previous glyph
+  ldrb r6,[r5,VWF_DRAW_PREVIOUS]
+  cmp r6,0x1
+  subeq r3,r3,r11
+  ;Increase graphics ptr by the Character start / 2
+  ldrb r5,[r5,VWF_CHAR_START]
+  add r3,r3,r5,lsr 1
+  ;Setup some registers
+  mov r12,r3
+  mov r6,0x0
+  mov r7,0x0
+  @@loop:
+  ;If r5+r6 >= 8, draw in the next glyph (-4 to go up one row)
+  add r3,r5,r6
+  cmp r3,0x8
+  mov r3,r12
+  addge r3,r3,r11
+  subge r3,r3,0x4
+  ;Get and store the actual pixel data
+  ldrb r8,[r2]
+  and r9,r8,r1
+  mul r10,r9,r4
+  and r9,r8,r0
+  orr r9,r9,r10
+  strb r9,[r3]
+  ;Increase counters
+  add r2,r2,0x1
+  add r7,r7,0x1
+  add r12,r12,0x1
+  ;Increase r6 by 2, decrease by 8 if >= 8
+  add r6,r6,0x2
+  cmp r6,0x8
+  subge r6,r6,0x8
+  ;Check if we need to loop more
+  cmp r7,r11
+  blt @@loop
+  bx lr
 
   VWF_END:
   push {r0-r2}
@@ -245,7 +240,6 @@
   mov r1,0x0
   strb r1,[r0,VWF_CHAR_START]
   strb r1,[r0,VWF_CHAR_LENGTH]
-  strb r1,[r0,VWF_CHAR_X]
   strb r1,[r0,VWF_DRAW_PREVIOUS]
   strb r1,[r0,VWF_CLEAN]
   b @@pop
@@ -310,6 +304,10 @@
   ;Cleanup on item symbol
   cmp r1,0x13
   beq @@cleanup
+  ;For waits, check the next character
+  cmp r1,0x5
+  addeq r0,r0,0x2
+  beq @@checkagain
   ;For colors, we need to check the next character as well since it might be at the end of a line
   cmp r1,0x7
   addeq r0,r0,0x2
@@ -378,64 +376,31 @@
   .org 0x02025f8c
   bl VWF_BEGIN_SMALL
 
-  ;Push more registers in the draw_glyph function so we have more room to work with
-  .org 0x02025ec8
-  ;push {r4-r6,lr}
-  push {r4-r10,lr}
-  .org 0x02025f0c
-  ;pop {r4-r6,lr}
-  pop {r4-r10,lr}
-  .org 0x02025f70
-  ;pop {r4-r6,lr}
-  pop {r4-r10,lr}
-
   ;Replace the glyph rendering
   .org 0x02025f3c
   .area 12*4
   mov r0,0x11
   mov r1,0x22
-  @loop:
-  ldrb r14,[r5]
-  and r2,r14,r1
-  mul r12,r2,r4
-  and r2,r14,r0
-  orr r2,r2,r12
-  b VWF
-  VWF_RET:
-  add r6,r6,0x1
-  cmp r6,0x40
-  blt @loop
-  nop
+  mov r2,r5
+  push {r7-r12}
+  mov r11,0x40
+  bl VWF
+  pop {r7-r12}
+  b 0x02025f6c
   .endarea
-
-  ;Push more registers in the draw_small_glyph function so we have more room to work with
-  .org 0x02025f88
-  ;push {r4-r6,lr}
-  push {r4-r10,lr}
-  .org 0x02025fcc
-  ;pop {r4-r6,lr}
-  pop {r4-r10,lr}
-  .org 0x0202603c
-  ;pop {r4-r6,lr}
-  pop {r4-r10,lr}
 
   ;Replace the small glyph rendering
   .org 0x02026008
   .area 12*4
   mov r0,0x11
   mov r1,0x22
-  @small_loop:
-  ldrb r14,[r6]
-  and r2,r14,r1
-  mul r3,r2,r4
-  and r2,r14,r0
-  orr r2,r2,r3
-  b VWF_SMALL
-  VWF_SMALL_RET:
-  add r5,r5,0x1
-  cmp r5,0x20
-  blt @small_loop
-  nop
+  mov r2,r6
+  mov r3,r12
+  push {r7-r12}
+  mov r11,0x20
+  bl VWF
+  pop {r7-r12}
+  b 0x02025f6c
   .endarea
 
   ;Hook after a glyph has been rendered
