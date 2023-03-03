@@ -279,10 +279,9 @@
   CHECK_NEXT_CHAR:
   push {r0-r1}
   ;Advance character pos be 1 if it's not ascii
-  load_vwf_data r1
-  ldrb r1,[r1,VWF_IS_ASCII]
-  cmp r1,0
-  addeq r0,r0,1
+  ldrb r1,[r0]
+  cmp r1,0x7f
+  addge r0,r0,0x1
   ;Check next character
   @@checkagain:
   ldrb r1,[r0,0x1]
