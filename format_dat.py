@@ -425,7 +425,7 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
 
 
 def writeShiftJISBIN(f, s, maxlen=0, encoding="shift_jis"):
-    return writeShiftJIS(f, s, maxlen, True)
+    return writeShiftJIS(f, s, maxlen-1, True)
 
 
 def logLongError(type, x, s, maxlen):
