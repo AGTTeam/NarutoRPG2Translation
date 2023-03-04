@@ -1,5 +1,26 @@
 .nds
 
+;Max length for item names in Item menu
+SHORTEN_ITEM_NAME_VALUE equ 0xa*8
+;Max length for item name when using one from the Item menu
+SHORTEN_ITEM_NAME_USE_VALUE equ 0xa*8
+;Max length for equip names in Equip menu (small on the left)
+SHORTEN_EQUIP_NAME_LEFT_VALUE equ 0x8*8
+;Max length for equip names in Equip menu (longer ones)
+;Also used when selecting a slot (at the top)
+SHORTEN_EQUIP_NAME_VALUE equ 0xa*8
+;Max length for equip names in Status menu
+SHORTEN_STATUS_EQUIP_VALUE equ 0xa*8
+;Max length for shop windows (same for all 4 equip/item shop)
+SHORTEN_SHOP_VALUE equ 0xa*8
+;Max length for valuables window
+SHORTEN_VALUABLES_VALUE equ 0xf*8
+;Max length for jutsu name in Jutsu menu when using one
+SHORTEN_JUTSU_USE_VALUE equ 0xa*8
+
+sprintf equ 0x02001094
+print_string equ 0x020265c0
+
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
   .area 0x1000
@@ -11,6 +32,9 @@
   SJIS_LOOKUP_SMALL:
   .import "NarutoRPG2Data/fontdatasmall.bin"
   .align
+
+  SHORTEN_BUFFER:
+  .fill 0x20,0
 
   LOAD_STR:
   .ascii "Load %s?" :: .db 0xa :: .asciiz "    Yes            No"
@@ -50,7 +74,6 @@
   ;Repeat one more time
   .db 0 :: .db 0 :: .db 0 :: .db 0 :: .dw 0 :: .dw 0
   .align
-
   .macro load_vwf_data,reg
   ldr reg,=VWF_DATA
   ldr reg,[reg]
@@ -343,6 +366,112 @@
   bx lr
   .pool
 
+  ;r0 = original string
+  ;r1 = max length
+  ;r2 = result
+  ;r3 = VWF lookup
+  SHORTEN_STR:
+  push {r4-r6}
+  mov r4,0
+  @@loop:
+  ldrb r5,[r0],0x1
+  ;Check for 0 byte
+  cmp r5,0x0
+  beq @@return
+  ;Check for item code
+  cmp r5,0x13
+  beq @@copysjis
+  ;Check for sjis
+  cmp r5,0x7f
+  bge @@copysjis
+  ;Load length for ASCII
+  sub r6,r5,0x20
+  lsl r6,r6,0x2
+  add r6,r3,r6
+  ldrh r6,[r6,0x2]
+  ;Check if we can fit it
+  add r4,r4,r6
+  cmp r4,r1
+  bge @@shorten
+  ;Write the byte and move on
+  strb r5,[r2],0x1
+  b @@loop
+  @@copysjis:
+  ;Check if we can fit 8 pixels
+  add r4,r4,8
+  cmp r4,r1
+  bge @@shorten
+  ;Copy 2 bytes and move on
+  strb r5,[r2],0x1
+  ldrb r5,[r0],0x1
+  strb r5,[r2],0x1
+  b @@loop
+  @@shorten:
+  ;Write ... and return
+  mov r5,0x2e
+  strb r5,[r2],0x1
+  strb r5,[r2],0x1
+  strb r5,[r2],0x1
+  @@return:
+  mov r4,0
+  strb r4,[r2]
+  pop {r4-r6}
+  bx lr
+  .pool
+
+  .macro shorten,max
+  cmp r2,0x0
+  beq print_string
+  push {r0,r1,r3,lr}
+  mov r0,r2
+  mov r1,max
+  ldr r2,=SHORTEN_BUFFER
+  ldr r3,=SJIS_LOOKUP
+  bl SHORTEN_STR
+  ldr r2,=SHORTEN_BUFFER
+  pop {r0,r1,r3,lr}
+  b print_string
+  .pool
+  .endmacro
+
+  SHORTEN_ITEM_NAME:
+  shorten SHORTEN_ITEM_NAME_VALUE
+  SHORTEN_ITEM_NAME_USE:
+  shorten SHORTEN_ITEM_NAME_USE_VALUE
+  SHORTEN_EQUIP_NAME_LEFT:
+  shorten SHORTEN_EQUIP_NAME_LEFT_VALUE
+  SHORTEN_EQUIP_NAME:
+  shorten SHORTEN_EQUIP_NAME_VALUE
+  SHORTEN_STATUS_EQUIP:
+  shorten SHORTEN_STATUS_EQUIP_VALUE
+  SHORTEN_JUTSU_USE:
+  shorten SHORTEN_JUTSU_USE_VALUE
+
+  .macro shorten_list,reg,max
+  push {r0-r3,lr}
+  mov r0,reg
+  mov r1,max
+  mov r2,reg
+  ldr r3,=SJIS_LOOKUP
+  bl SHORTEN_STR
+  pop {r0-r3,lr}
+  bx lr
+  .pool
+  .endmacro
+
+  SHORTEN_SHOP:
+  str r8,[r10,0x4]
+  shorten_list r8,SHORTEN_SHOP_VALUE
+  ;This function is called for every item, not just valuables
+  ;If [r5,0x30] is != 0, the item is a valuable
+  SHORTEN_VALUABLES:
+  ldr r0,[r5,0x30]
+  cmp r0,0x0
+  bxeq lr
+  ldr r2,[r4,0x10]
+  add r2,r2,r6
+  shorten_list r2,SHORTEN_VALUABLES_VALUE
+
   LOAD_STR_SPRINTF:
   ldr r1,=LOAD_STR
   b LOAD_STR_SPRINTF_RET
@@ -444,6 +573,70 @@
   .org 0x0203bed8
   ;mov r0,0xc
   mov r0,0xd
+
+  ;Shorten some strings when displaying them
+  ;Shorten item names in Item menu
+  .org 0x020386e0
+  bl SHORTEN_ITEM_NAME
+  ;Shorten item name when using one from the Item menu
+  .org 0x02038efc
+  bl SHORTEN_ITEM_NAME_USE
+  ;Shorten equip names in Equip menu (small on the left)
+  .org 0x02052ca0
+  bl SHORTEN_EQUIP_NAME_LEFT
+  .org 0x02052cdc
+  bl SHORTEN_EQUIP_NAME_LEFT
+  .org 0x02052d18
+  bl SHORTEN_EQUIP_NAME_LEFT
+  ;Shorten equip names in Equip menu (longer ones)
+  .org 0x02052eb0
+  bl SHORTEN_EQUIP_NAME
+  .org 0x02052ee8
+  bl SHORTEN_EQUIP_NAME
+  .org 0x02052f20
+  bl SHORTEN_EQUIP_NAME
+  ;Shorten equip name when selecting a slot (at the top)
+  .org 0x02052b78
+  bl SHORTEN_EQUIP_NAME
+  ;Also move them a bit left
+  .org 0x02052e98
+  ;add r0,r10,0x8
+  add r0,r10,0x7
+  .org 0x02052eb8
+  add r0,r10,0x7
+  .org 0x02052ef0
+  add r0,r10,0x7
+  ;Shorten equip names in Status menu
+  .org 0x02058600
+  bl SHORTEN_STATUS_EQUIP
+  .org 0x02058688
+  bl SHORTEN_STATUS_EQUIP
+  .org 0x02058718
+  bl SHORTEN_STATUS_EQUIP
+  ;Also move them a bit left
+  .org 0x020585a4
+  ;add r1,r8,0x5
+  add r1,r8,0x4
+  .org 0x020585e8
+  add r1,r8,0x4
+  .org 0x02058670
+  add r1,r8,0x4
+  .org 0x020586f4
+  add r1,r8,0x4
+  .org 0x02058620
+  ;add r1,r8,0x7
+  add r1,r8,0x6
+  .org 0x020586a8
+  add r1,r8,0x6
+  ;Shorten shop windows (same for all 4 equip/item shop)
+  .org 0x0205c2b0
+  bl SHORTEN_SHOP
+  ;Shorten valuables window
+  .org 0x020389ac
+  bl SHORTEN_VALUABLES
+  ;Shorten jutsu name in Jutsu menu when using one
+  .org 0x020569a0
+  bl SHORTEN_JUTSU_USE
 
   ;Change save/load string to move sprintf parameters
   .org 0x02073260

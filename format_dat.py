@@ -264,7 +264,7 @@ fixedfiles = {
     "msg/msgmenu/msg_menujinkei.dat": (0x36, 0x34),
     "msg/msgmenu/msg_menujyutu.dat": (0x6a, 0x25),
     "msg/msgmenu/msg_menusoubi.dat": (0x6a, 0x2d),
-    "param/item_data.dat": (0xbc, 0xe),
+    "param/item_data.dat": (0xbc, 0x19),
     "param/jyutu_data.dat": (0x2c, 0x19),
     "param/kumite_data.dat": (0x4c, 0x23),
     "param/mon_param.dat": (0xd4, 0x11),
