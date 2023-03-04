@@ -1,22 +1,21 @@
 .nds
 
 ;Max length for item names in Item menu
-SHORTEN_ITEM_NAME_VALUE equ 0xa*8
+SHORTEN_ITEM_NAME_VALUE equ 12*8
 ;Max length for item name when using one from the Item menu
-SHORTEN_ITEM_NAME_USE_VALUE equ 0xa*8
+SHORTEN_ITEM_NAME_USE_VALUE equ 12*8
 ;Max length for equip names in Equip menu (small on the left)
-SHORTEN_EQUIP_NAME_LEFT_VALUE equ 0x8*8
-;Max length for equip names in Equip menu (longer ones)
-;Also used when selecting a slot (at the top)
-SHORTEN_EQUIP_NAME_VALUE equ 0xa*8
+SHORTEN_EQUIP_NAME_LEFT_VALUE equ 10*8
+;Max length for equip names in Equip menu and when selecting a slot (at the top)
+SHORTEN_EQUIP_NAME_VALUE equ 11*8
 ;Max length for equip names in Status menu
-SHORTEN_STATUS_EQUIP_VALUE equ 0xa*8
+SHORTEN_STATUS_EQUIP_VALUE equ 11*8
 ;Max length for shop windows (same for all 4 equip/item shop)
-SHORTEN_SHOP_VALUE equ 0xa*8
+SHORTEN_SHOP_VALUE equ 14*8
 ;Max length for valuables window
-SHORTEN_VALUABLES_VALUE equ 0xf*8
+SHORTEN_VALUABLES_VALUE equ 18*8
 ;Max length for jutsu name in Jutsu menu when using one
-SHORTEN_JUTSU_USE_VALUE equ 0xa*8
+SHORTEN_JUTSU_USE_VALUE equ 11*8
 
 sprintf equ 0x02001094
 print_string equ 0x020265c0
@@ -371,15 +370,19 @@ print_string equ 0x020265c0
   ;r2 = result
   ;r3 = VWF lookup
   SHORTEN_STR:
-  push {r4-r6}
-  mov r4,0
+  push {r4-r9}
+  mov r4,0 ;vwf counter
+  mov r7,0 ;tile counter
+  mov r8,r2 ;last good tile ptr
+  mov r9,r2 ;current tile ptr
   @@loop:
   ldrb r5,[r0],0x1
   ;Check for 0 byte
   cmp r5,0x0
   beq @@return
-  ;Check for item code
+  ;Check for item code, also add an extra 8 to the size
   cmp r5,0x13
+  addeq r4,r4,8
   beq @@copysjis
   ;Check for sjis
   cmp r5,0x7f
@@ -395,7 +398,7 @@ print_string equ 0x020265c0
   bge @@shorten
   ;Write the byte and move on
   strb r5,[r2],0x1
-  b @@loop
+  b @@check_tile
   @@copysjis:
   ;Check if we can fit 8 pixels
   add r4,r4,8
@@ -405,17 +408,25 @@ print_string equ 0x020265c0
   strb r5,[r2],0x1
   ldrb r5,[r0],0x1
   strb r5,[r2],0x1
+  ;Check if we're in a new tile
+  @@check_tile:
+  lsr r5,r4,3
+  cmp r5,r7
+  movne r7,r5
+  movne r8,r9
+  movne r9,r2
   b @@loop
   @@shorten:
-  ;Write ... and return
-  mov r5,0x2e
+  mov r2,r9
+  ;Write … and return
+  mov r5,0x81
   strb r5,[r2],0x1
-  strb r5,[r2],0x1
+  mov r5,0x63
   strb r5,[r2],0x1
   @@return:
   mov r4,0
   strb r4,[r2]
-  pop {r4-r6}
+  pop {r4-r9}
   bx lr
   .pool
 
