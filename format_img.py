@@ -466,54 +466,67 @@ manualcells = {
         ]},
     ],
     "sys/obj/sys_ob_c_000.acg": [
+        # Some symbols
         {"pal": 1, "repeat": 4, "cells": [
             {"width": 8, "height": 8}
         ]},
+        # Lv.
         {"pal": 1, "cells": [
             {"width": 16, "height": 8}
         ]},
+        # Numbers and /
         {"pal": 1, "repeat": 11, "cells": [
             {"width": 8, "height": 8}
         ]},
+        # Money
         {"pal": 2, "cells": [
             {"width": 32, "height": 16},
             {"width": 8, "height": 16, "x": 32},
         ]},
+        # Ryo
         {"pal": 2, "cells": [
             {"width": 16, "height": 16},
         ]},
+        # Empty
         {"cells": [
             {"width": 8, "height": 8},
         ]},
+        # Top Secret
         {"pal": 2, "cells": [
             {"width": 32, "height": 32},
             {"width": 16, "height": 32, "x": 32},
             {"width": 8, "height": 32, "x": 48},
         ]},
+        # Shuriken
         {"pal": 2, "cells": [
             {"width": 16, "height": 16},
         ]},
+        # Item, Equip, Jutsu
         {"pal": 2, "repeat": 3, "cells": [
             {"width": 32, "height": 16},
             {"width": 32, "height": 8, "y": 16},
         ]},
+        # Status
         {"pal": 2, "cells": [
             {"width": 32, "height": 16},
             {"width": 32, "height": 8, "y": 16},
             {"width": 16, "height": 16, "x": 32},
             {"width": 16, "height": 8, "x": 32, "y": 16},
         ]},
+        # Formation
         {"pal": 2, "cells": [
             {"width": 32, "height": 16},
             {"width": 32, "height": 8, "y": 16},
             {"width": 8, "height": 16, "x": 32},
             {"width": 8, "height": 8, "x": 32, "y": 16},
         ]},
+        # Member
         {"pal": 2, "cells": [
             {"width": 32, "height": 16},
             {"width": 32, "height": 8, "y": 16},
             {"width": 8, "height": 8, "x": 32, "y": 8},
         ]},
+        # Weapon, Armor
         {"pal": 2, "repeat": 2, "cells": [
             {"width": 32, "height": 16},
             {"width": 32, "height": 8, "y": 16},

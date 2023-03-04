@@ -674,4 +674,9 @@ print_string equ 0x020265c0
   .org 0x0203b824
   ;mov r3,0xe
   mov r3,0x10
+
+  ;Move money left 1 tile
+  .org 0x0203bbf8
+  ;mov r1,0x12
+  mov r1,0x11
 .close
