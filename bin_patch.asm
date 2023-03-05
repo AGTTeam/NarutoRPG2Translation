@@ -365,6 +365,34 @@ print_string equ 0x020265c0
   bx lr
   .pool
 
+  ;Strlen function that works with VWF
+  STRLEN_VWF:
+  push {r3-r4}
+  ldr r3,=SJIS_LOOKUP
+  mov r2,0
+  @@loop:
+  ldrb r1,[r0],0x1
+  cmp r1,0x0
+  beq @@return
+  cmp r1,0x7f
+  bge @@sjis
+  sub r1,r1,0x20
+  lsl r1,r1,0x2
+  add r1,r3,r1
+  ldrh r1,[r1,0x2]
+  add r2,r2,r1
+  b @@loop
+  @@sjis:
+  add r0,r0,0x1
+  add r2,r2,0x8
+  b @@loop
+  @@return:
+  mov r0,r2,lsr 0x2
+  add r0,r0,0x1
+  pop {r3-r4}
+  bx lr
+  .pool
+
   ;r0 = original string
   ;r1 = max length
   ;r2 = result
@@ -664,6 +692,10 @@ print_string equ 0x020265c0
   .org 0x02073528
   b OVERWRITE_STR_SPRINTF
   OVERWRITE_STR_SPRINTF_RET:
+
+  ;Use a different strlen function for spacing some strings
+  .org 0x02029274
+  bl STRLEN_VWF
 
   ;Move the save/load location text left
   .org 0x02072444
