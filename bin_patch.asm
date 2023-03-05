@@ -8,17 +8,26 @@ SHORTEN_ITEM_NAME_USE_VALUE equ 12*8
 SHORTEN_EQUIP_NAME_LEFT_VALUE equ 10*8
 ;Max length for equip names in Equip menu and when selecting a slot (at the top)
 SHORTEN_EQUIP_NAME_VALUE equ 11*8
+;Max length for equip names in Equip menu when changing a slot
+SHORTEN_EQUIP_LIST_VALUE equ 10*8
 ;Max length for equip names in Status menu
 SHORTEN_STATUS_EQUIP_VALUE equ 11*8
+;Max length for jutsu list in Status menu
+SHORTEN_STATUS_JUTSU_LIST_VALUE equ 13*8
 ;Max length for shop windows (same for all 4 equip/item shop)
-SHORTEN_SHOP_VALUE equ 14*8
+SHORTEN_SHOP_VALUE equ 13*8
 ;Max length for valuables window
-SHORTEN_VALUABLES_VALUE equ 18*8
+SHORTEN_VALUABLES_VALUE equ 17*8
 ;Max length for jutsu name in Jutsu menu when using one
 SHORTEN_JUTSU_USE_VALUE equ 11*8
+;Max length for jutsu name in battle
+SHORTEN_BATTLE_JUTSU_LIST_VALUE equ 13*8
+;Max length for item name in battle
+SHORTEN_BATTLE_ITEM_LIST_VALUE equ 11*8
 
 sprintf equ 0x02001094
 print_string equ 0x020265c0
+print_list equ 0x02029104
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
@@ -34,6 +43,10 @@ print_string equ 0x020265c0
 
   SHORTEN_BUFFER:
   .fill 0x20,0
+  .align
+
+  SHORTEN_AMOUNT:
+  .dw 0
 
   LOAD_STR:
   .ascii "Load %s?" :: .db 0xa :: .asciiz "    Yes            No"
@@ -511,6 +524,57 @@ print_string equ 0x020265c0
   add r2,r2,r6
   shorten_list r2,SHORTEN_VALUABLES_VALUE
 
+  SHORTEN_PRINT_LIST:
+  cmp r2,0x0
+  beq @@skip
+  push {r0,r1,r3,lr}
+  mov r0,r2
+  ldr r1,=SHORTEN_AMOUNT
+  ldr r1,[r1]
+  ;If the shorten amount is 0x0, skip this
+  cmp r1,0x0
+  popeq {r0,r1,r3,lr}
+  beq @@skip
+  ldr r2,=SHORTEN_BUFFER
+  ldr r3,=SJIS_LOOKUP
+  bl SHORTEN_STR
+  ldr r2,=SHORTEN_BUFFER
+  pop {r0,r1,r3,lr}
+  @@skip:
+  b print_string
+  .pool
+
+  .macro wrap_print_list,max,ret,battle
+  push {r0-r1}
+  ldr r0,=SHORTEN_AMOUNT
+  .if battle == 0
+    mov r1,max
+  .else
+    ldr r1,=0x020c0318
+    ldr r1,[r1,0x4] ; this is 0 for jutsu, 1 for items
+    cmp r1,0x0
+    moveq r1,max
+    movne r1,SHORTEN_BATTLE_ITEM_LIST_VALUE
+  .endif
+  str r1,[r0]
+  pop {r0-r1}
+  bl print_list
+  push {r0-r1}
+  ldr r0,=SHORTEN_AMOUNT
+  mov r1,0
+  str r1,[r0]
+  pop {r0-r1}
+  b ret
+  .pool
+  .endmacro
+
+  SHORTEN_EQUIP_LIST:
+  wrap_print_list SHORTEN_EQUIP_LIST_VALUE,SHORTEN_EQUIP_LIST_RET,0
+  SHORTEN_STATUS_JUTSU_LIST:
+  wrap_print_list SHORTEN_STATUS_JUTSU_LIST_VALUE,SHORTEN_STATUS_JUTSU_LIST_RET,0
+  SHORTEN_BATTLE_LIST:
+  wrap_print_list SHORTEN_BATTLE_JUTSU_LIST_VALUE,SHORTEN_BATTLE_LIST_RET,1
+
   LOAD_STR_SPRINTF:
   ldr r1,=LOAD_STR
   b LOAD_STR_SPRINTF_RET
@@ -650,6 +714,10 @@ print_string equ 0x020265c0
   add r0,r10,0x7
   .org 0x02052ef0
   add r0,r10,0x7
+  ;Shorten equip names in Equip menu when changing a slot
+  .org 0x0205346c
+  b SHORTEN_EQUIP_LIST
+  SHORTEN_EQUIP_LIST_RET:
   ;Shorten equip names in Status menu
   .org 0x02058600
   bl SHORTEN_STATUS_EQUIP
@@ -657,6 +725,10 @@ print_string equ 0x020265c0
   bl SHORTEN_STATUS_EQUIP
   .org 0x02058718
   bl SHORTEN_STATUS_EQUIP
+  ;Shorten jutsu list in Status menu
+  .org 0x0205826c
+  b SHORTEN_STATUS_JUTSU_LIST
+  SHORTEN_STATUS_JUTSU_LIST_RET:
   ;Also move them a bit left
   .org 0x020585a4
   ;add r1,r8,0x5
@@ -681,6 +753,13 @@ print_string equ 0x020265c0
   ;Shorten jutsu name in Jutsu menu when using one
   .org 0x020569a0
   bl SHORTEN_JUTSU_USE
+  ;Shorten item/jutsu name in battle
+  .org 0x0202f114
+  b SHORTEN_BATTLE_LIST
+  SHORTEN_BATTLE_LIST_RET:
+  ;Wrap the print_string function called by print_list
+  .org 0x020292b8
+  bl SHORTEN_PRINT_LIST
 
   ;Change save/load string to move sprintf parameters
   .org 0x02073260
