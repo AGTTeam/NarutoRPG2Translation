@@ -493,6 +493,11 @@ print_string equ 0x020265c0
   ldr r1,=OVERWRITE_STR
   b OVERWRITE_STR_SPRINTF_RET
   .pool
+
+  MOVE_RYO_RIGHT:
+  mov r3,0
+  add r0,r0,2
+  bx lr
   .endarea
 .close
 
@@ -690,4 +695,7 @@ print_string equ 0x020265c0
   .org 0x0203bbf8
   ;mov r1,0x12
   mov r1,0x11
+  ;Move Ryo a bit to the right
+  .org 0x0203b684
+  bl MOVE_RYO_RIGHT
 .close
