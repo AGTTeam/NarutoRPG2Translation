@@ -691,6 +691,11 @@ print_string equ 0x020265c0
   ;mov r3,0xe
   mov r3,0x10
 
+  ;Make the formation textbox bigger
+  .org 0x0205a8fc
+  ;mov r1,0xd
+  mov r1,0xf
+
   ;Move money left 1 tile
   .org 0x0203bbf8
   ;mov r1,0x12

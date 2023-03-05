@@ -5,6 +5,8 @@ from hacktools import common
 # Wordwrapping values, one is bigger for voice lines without a speaker image
 wordwrap = 206
 wordwrap2 = 176
+# Wordwrapping value for formation help
+wordwrapformation = 112
 
 
 def extract(data):
@@ -145,10 +147,11 @@ def repack(data):
                             f.seek(fin.tell())
                             sjis = getTranslation(sections, filename, readShiftJIS(fin))
                             writeShiftJIS(f, sjis, 0x35)
-                        elif "msg_menufieldcmd" in filename:
-                            sjisw = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
-                            writeShiftJIS(f, sjisw, fixedmax)
                         else:
+                            if "msg_menufieldcmd" in filename:
+                                sjis = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
+                            elif "msg_menujinkei" in filename:
+                                sjis = common.wordwrap(sjis, glyphs, wordwrapformation, detectTextCode, strip=False)
                             writeShiftJIS(f, sjis, fixedmax)
                         i += 1
                 else:
