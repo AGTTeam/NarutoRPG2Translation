@@ -49,11 +49,14 @@ print_list equ 0x02029104
   .dw 0
 
   LOAD_STR:
-  .ascii "Load %s?" :: .db 0xa :: .asciiz "    Yes            No"
+  ;0x020913d8 "を　ロードしますか？|　はい　　　いいえ"
+  .ascii "Load %s?" :: .db 0x0a :: .asciiz "    Yes            No"
   DELETE_STR:
-  .ascii "Delete %s?" :: .db 0xa :: .asciiz "    Yes            No"
+  ;0x02091480 "を　さくじょしますか？|　はい　　　いいえ"
+  .ascii "Delete %s?" :: .db 0x0a :: .asciiz "    Yes            No"
   OVERWRITE_STR:
-  .ascii "Overwrite %s?" :: .db 0xa :: .asciiz "    Yes            No"
+  ;0x020914d8 "のデータに　うわがきしますか？|　はい　　　いいえ"
+  .ascii "Overwrite %s?" :: .db 0x0a :: .asciiz "    Yes            No"
   .align
 
   VWF_DATA_SIZE equ 12

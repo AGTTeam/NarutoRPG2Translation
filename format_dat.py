@@ -385,6 +385,8 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
                 else:
                     colorcode = "c" + common.toHex(b2)
                 sjis += "<" + colorcode + ">"
+            elif b1 == 0x1 and b2 == 0x30:
+                sjis += "<0130>"
             elif b1 == 0x2:
                 sjis += "<u" + str(b2) + ">"
             elif b1 == 0x5:
@@ -411,7 +413,7 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
                 b3 = f.readByte()
                 sjis += "<14" + common.toHex(b2) + common.toHex(b3) + ">"
             elif not common.checkShiftJIS(b1, b2):
-                if not allowunk and b1 > 0x4:
+                if not allowunk and b1 > 0x4 and b1 != 0x11:
                     return ""
                 f.seek(-1, 1)
                 sjis += "<" + common.toHex(b1) + ">"

@@ -98,6 +98,17 @@ def repack(no_rom, bin, dat, img, map, snd):
         nds.repackRom(romfile, rompatch, outfolder, patchfile)
 
 
+@common.cli.command()
+@click.argument("text")
+def translate(text):
+    ret = ""
+    for c in text:
+        charcode = int.from_bytes(c.encode("shift_jis"), "little")
+        charhex = common.toHex(charcode).zfill(4)
+        ret += charhex[2:4] + charhex[0:2]
+    common.logMessage(ret)
+
+
 if __name__ == "__main__":
     click.echo("NarutoRPG2Translation version " + version)
     if not os.path.isdir(data):
