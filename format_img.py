@@ -45,7 +45,7 @@ def extract(data):
     common.logMessage("Done!")
 
 
-def repack(data):
+def repack(data, map=False):
     acgin = data + "extract/data/rom/"
     acgout = data + "repack/data/rom/"
     workfolder = data + "work_ACG/"
@@ -86,8 +86,7 @@ def repack(data):
     for file in common.showProgress(common.getFiles(acgin, ".acg")):
         if "map/anm" in file:
             continue
-        # Exclude all map files temporarily
-        if "map/" in file:
+        if "map/" in file and not map:
             continue
         common.logDebug("Processing", file, "...")
         totfiles += 1
