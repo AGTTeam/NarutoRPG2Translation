@@ -814,4 +814,11 @@ print_list equ 0x02029104
   ;Move Ryo a bit to the right
   .org 0x0203b684
   bl MOVE_RYO_RIGHT
+
+  ;Move Searching for a partner wifi text left
+  .org 0x0203fca4
+  ;mov r0,0xa
+  mov r0,0x7
+  .org 0x0203ff2c
+  mov r0,0x7
 .close
