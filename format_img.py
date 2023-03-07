@@ -17,7 +17,7 @@ def extract(data):
     common.makeFolder(outfolder)
     nob = readNOB(infolder)
     for file in common.showProgress(common.getFiles(infolder, ".acg")):
-        if "map/anm" in file:
+        if file.startswith("map/anm/"):
             continue
         totfiles += 1
         ncgr, nscr, cells, palettes, mapfile = readImage(infolder, file, nob)
@@ -28,7 +28,24 @@ def extract(data):
         if cells is not None:
             nitro.drawNCER(pngfile, cells, ncgr, palettes)
         else:
-            nitro.drawNCGR(pngfile, nscr, ncgr, palettes, ncgr.width, ncgr.height)
+            usewidth = ncgr.width
+            useheight = ncgr.height
+            if file.startswith("map/") and nscr is not None:
+                usewidth = nscr.width
+                useheight = nscr.height
+            nitro.drawNCGR(pngfile, nscr, ncgr, palettes, usewidth, useheight)
+        if file.startswith("map/"):
+            mapimg = Image.open(pngfile)
+            if "_a2" not in file:
+                mapbg = mapimg.crop(box=(0, 0, mapimg.width, mapimg.height // 2))
+                mapfg = mapimg.crop(box=(0, mapimg.height // 2, mapimg.width, mapimg.height))
+                mergedimg = Image.new("RGBA", (mapimg.width, mapimg.height // 2), (0, 0, 0, 0))
+                mergedimg.paste(mapbg, (0, 0))
+                mergedimg.paste(mapfg, (0, 0), mapfg)
+            else:
+                mergedimg = Image.open(pngfile.replace("_a2.png", "_merged.png"))
+                mergedimg.paste(mapimg, (0, 0), mapimg)
+            mergedimg.save(pngfile.replace(".png", "_merged.png"), "PNG")
     common.logMessage("Done! Extracted", totfiles, "files")
     # Split font
     common.logMessage("Extracting FONT to", outfont, "...")
@@ -45,7 +62,7 @@ def extract(data):
     common.logMessage("Done!")
 
 
-def repack(data, map=False):
+def repack(data):
     acgin = data + "extract/data/rom/"
     acgout = data + "repack/data/rom/"
     workfolder = data + "work_ACG/"
@@ -84,22 +101,25 @@ def repack(data, map=False):
     nob = readNOB(acgin)
     open("tempcell.bin", "w").close()
     for file in common.showProgress(common.getFiles(acgin, ".acg")):
-        if "map/anm" in file:
-            continue
-        if "map/" in file and not map:
+        if file.startswith("map/anm/"):
             continue
         common.logDebug("Processing", file, "...")
         totfiles += 1
         pngfile = file.replace(".acg", ".png")
         if os.path.isfile(workfolder + pngfile):
             ncgr, nscr, cells, palettes, mapfile = readImage(acgin, file, nob)
+            usewidth = ncgr.width
+            useheight = ncgr.height
+            if file.startswith("map/") and nscr is not None:
+                usewidth = nscr.width
+                useheight = nscr.height
             if nscr is None and cells is None:
                 common.copyFile(acgin + file, acgout + file)
-                nitro.writeNCGR(acgout + file, ncgr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
+                nitro.writeNCGR(acgout + file, ncgr, workfolder + pngfile, palettes, usewidth, useheight)
             elif cells is None:
                 common.copyFile(acgin + file, acgout + file)
                 common.copyFile(acgin + mapfile, acgout + mapfile)
-                nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, ncgr.width, ncgr.height)
+                nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, usewidth, useheight, transptile=file.startswith("map/"), writelen=False, useoldpal=file.startswith("map/"))
             else:
                 common.copyFile(acgin + file, acgout + file)
                 nitro.writeNCER(acgout + file, "tempcell.bin", ncgr, cells, workfolder + pngfile, palettes)
@@ -107,7 +127,7 @@ def repack(data, map=False):
     common.logMessage("Done! Repacked", totfiles, "files")
 
 
-def readImage(infolder, file, nob):
+def readImage(infolder, file, nob=None):
     # Read palette
     palfile = file.replace(".acg", ".acl")
     mergefiles = []
@@ -153,31 +173,40 @@ def readImage(infolder, file, nob):
             common.logError("Palette file", palfile, "not found")
             return None, None, None, {}, ""
     size = os.path.getsize(infolder + palfile)
+    colornum = 0x10
+    pallen = size
+    if "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file or "sys_bg_a_004" in file:
+        colornum = 4
+        pallen = 8
+    palettes = []
+    # For maps, we need to load some common palettes from other files
+    if file.startswith("map/"):
+        with common.Stream(infolder + "sys/bg/sys_bg_a_000.acl", "rb") as f:
+            for i in range(3):
+                palette = []
+                for j in range(colornum):
+                    palette.append(common.readPalette(f.readUShort()))
+                palettes.append(palette)
+        with common.Stream(infolder + "sys/bg/sys_bg_c_000.acl", "rb") as f:
+            f.seek(0x20)
+            for i in range(1):
+                palette = []
+                for j in range(colornum):
+                    palette.append(common.readPalette(f.readUShort()))
+                palettes.append(palette)
     with common.Stream(infolder + palfile, "rb") as f:
-        pallen = size
-        colornum = 0x10
-        palettes = []
-        if "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file or "sys_bg_a_004" in file:
-            colornum = 4
-            pallen = 8
         for i in range(pallen // (colornum * 2)):
             palette = []
             for j in range(colornum):
                 palette.append(common.readPalette(f.readUShort()))
             palettes.append(palette)
-        indexedpalettes = {i: palettes[i % colornum] for i in range(len(palettes))}
+    indexedpalettes = {i: palettes[i % colornum] for i in range(len(palettes))}
     if os.path.isfile(infolder + "temp.acl"):
         os.remove(infolder + "temp.acl")
-    if file.startswith("map/"):
-        if "mp_00f" in file:
-            indexedpalettes[0] = indexedpalettes[3]
-        else:
-            indexedpalettes[0] = indexedpalettes[2]
     # Read tiles
     size = os.path.getsize(infolder + file)
     with common.Stream(infolder + file, "rb") as f:
         ncgr = nitro.NCGR()
-        ncgr.tiles = []
         ncgr.width = 256
         if file.startswith("f_name") or file.startswith("jyutu_name"):
             ncgr.width = 32
@@ -214,12 +243,27 @@ def readImage(infolder, file, nob):
             f.seek(0)
             nscr.width = ncgr.width
             nscr.height = ncgr.height = math.ceil(size / 8 / (nscr.width / 8)) * 8
-            nscr.maps = []
             for j in range((nscr.width // 8) * (nscr.height // 8)):
                 map = nitro.readMapData(f.readUShort())
-                map.oldpal = map.pal
                 map.pal = map.pal % len(palettes)
                 nscr.maps.append(map)
+    else:
+        mapfile = file.replace(".acg", ".dqm")
+        if os.path.isfile(infolder + mapfile):
+            size = os.path.getsize(infolder + mapfile)
+            nscr = nitro.NSCR()
+            nscr.width = mapwidths[file]
+            nscr.height = math.ceil((size / 2) / (nscr.width / 8)) * 8
+            nscr.mapoffset = 0
+            with common.Stream(infolder + mapfile, "rb") as f:
+                for j in range((nscr.width // 8) * (nscr.height // 8)):
+                    try:
+                        map = nitro.readMapData(f.readUShort())
+                        nscr.maps.append(map)
+                    except:
+                        common.logError("Wrong size", mapfile)
+                        nscr = None
+                        break
     # Read cells
     cellfile = file.replace(".acg", ".nob")
     cells = None
@@ -624,4 +668,97 @@ manualcells = {
             {"width": 8, "height": 24, "x": 72, "y": 16},
         ]},
     ],
+}
+
+
+mapwidths = {
+    "map/dj_000/dj_000.acg": 768,
+    "map/dj_001/dj_001.acg": 768,
+    "map/dj_002/dj_002.acg": 768,
+    "map/dj_003/dj_003.acg": 768,
+    "map/dj_004/dj_004.acg": 768,
+    "map/dj_005/dj_005.acg": 512,
+    "map/dj_006/dj_006.acg": 512,
+    "map/dj_007/dj_007.acg": 512,
+    "map/dj_008/dj_008.acg": 1024,
+    "map/dj_009/dj_009.acg": 688,
+    "map/dj_00a/dj_00a.acg": 880,
+    "map/dj_00b/dj_00b.acg": 512,
+    "map/dj_00c/dj_00c.acg": 512,
+    "map/dj_00d/dj_00d.acg": 512,
+    "map/dj_00e/dj_00e.acg": 1280,
+    "map/dj_00f/dj_00f.acg": 768,
+    "map/dj_010/dj_010.acg": 512,
+    "map/dj_011/dj_011.acg": 512,
+    "map/dj_012/dj_012.acg": 512,
+    "map/dj_013/dj_013.acg": 512,
+    "map/dj_014/dj_014.acg": 1280,
+    "map/dj_015/dj_015.acg": 1280,
+    "map/dj_016/dj_016.acg": 512,
+    "map/dj_017/dj_017.acg": 512,
+    "map/dj_018/dj_018.acg": 512,
+    "map/dj_019/dj_019.acg": 1024,
+    "map/dj_01a/dj_01a.acg": 512,
+    "map/dj_01b/dj_01b.acg": 608,
+    "map/dj_01c/dj_01c.acg": 512,
+    "map/dj_01d/dj_01d.acg": 512,
+    "map/dj_01e/dj_01e.acg": 512,
+    "map/dj_01f/dj_01f.acg": 512,
+    "map/dj_020/dj_020.acg": 512,
+    "map/dj_021/dj_021.acg": 512,
+    "map/dj_022/dj_022.acg": 768,
+    "map/dj_022/dj_022_a2.acg": 768,
+    "map/dj_023/dj_023.acg": 592,
+    "map/dj_024/dj_024.acg": 512,
+    "map/dj_025/dj_025.acg": 464,
+    "map/dj_026/dj_026.acg": 896,
+    "map/dj_027/dj_027.acg": 512,
+    "map/dj_028/dj_028.acg": 512,
+    "map/dj_029/dj_029.acg": 512,
+    "map/dj_02a/dj_02a.acg": 448,
+    "map/mp_000/mp_000.acg": 256,
+    "map/mp_001/mp_001.acg": 320,
+    "map/mp_002/mp_002.acg": 384,
+    "map/mp_003/mp_003.acg": 256,
+    "map/mp_004/mp_004.acg": 256,
+    "map/mp_005/mp_005.acg": 272,
+    "map/mp_006/mp_006.acg": 304,
+    "map/mp_007/mp_007.acg": 256,
+    "map/mp_008/mp_008.acg": 256,
+    "map/mp_009/mp_009.acg": 272,
+    "map/mp_00a/mp_00a.acg": 256,
+    "map/mp_00b/mp_00b.acg": 256,
+    "map/mp_00c/mp_00c.acg": 336,
+    "map/mp_00d/mp_00d.acg": 512,
+    "map/mp_00e/mp_00e.acg": 512,
+    "map/mp_00f/mp_00f.acg": 432,
+    "map/mp_010/mp_010.acg": 256,
+    "map/mp_011/mp_011.acg": 256,
+    "map/mp_012/mp_012.acg": 256,
+    "map/mp_013/mp_013.acg": 256,
+    "map/mp_014/mp_014.acg": 256,
+    "map/mp_015/mp_015.acg": 256,
+    "map/mp_016/mp_016.acg": 256,
+    "map/mp_017/mp_017.acg": 256,
+    "map/mp_018/mp_018.acg": 496,
+    "map/mp_019/mp_019.acg": 272,
+    "map/mp_01a/mp_01a.acg": 512,
+    "map/mp_01b/mp_01b.acg": 320,
+    "map/mp_01c/mp_01c.acg": 288,
+    "map/mp_01d/mp_01d.acg": 288,
+    "map/mp_01e/mp_01e.acg": 256,
+    "map/mp_01f/mp_01f.acg": 304,
+    "map/mp_020/mp_020.acg": 288,
+    "map/mp_021/mp_021.acg": 320,
+    "map/mp_022/mp_022.acg": 352,#2 map files
+    "map/mp_023/mp_023.acg": 256,
+    "map/mp_024/mp_024.acg": 304,
+    "map/mp_025/mp_025.acg": 304,
+    "map/mp_026/mp_026.acg": 256,
+    "map/mp_027/mp_027.acg": 256,
+    "map/mp_028/mp_028.acg": 256,
+    "map/mp_029/mp_029.acg": 368,
+    "map/mp_02a/mp_02a.acg": 512,
+    "map/mp_02b/mp_02b.acg": 256,
+    "map/mp_02c/mp_02c.acg": 256,
 }

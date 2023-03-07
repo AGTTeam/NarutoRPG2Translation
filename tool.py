@@ -5,7 +5,7 @@ import ndspy.soundArchive
 import ndspy.soundStream
 from hacktools import common, nds
 
-version = "0.11.0"
+version = "0.12.0"
 data = "NarutoRPG2Data/"
 romfile = data + "naruto.nds"
 rompatch = data + "naruto_patched.nds"
@@ -45,19 +45,18 @@ def extract(rom, bin, dat, img, en):
 @click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
-@click.option("--map", is_flag=True, default=False)
 @click.option("--snd", is_flag=True, default=False)
-def repack(no_rom, bin, dat, img, map, snd):
-    all = not bin and not dat and not img and not map and not snd
+def repack(no_rom, bin, dat, img, snd):
+    all = not bin and not dat and not img and not snd
     if all or bin:
         import format_bin
         format_bin.repack(data)
     if all or dat:
         import format_dat
         format_dat.repack(data)
-    if all or img or map:
+    if all or img:
         import format_img
-        format_img.repack(data, map)
+        format_img.repack(data)
     if os.path.isdir(data + "sound") and os.path.isdir(data + "voice_matching") and snd:
         infile = "voice_matching/jpn_to_eng.txt"
         common.logMessage("Repacking sound from", infile, "...")
