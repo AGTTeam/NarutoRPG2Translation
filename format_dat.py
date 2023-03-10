@@ -445,6 +445,7 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
     common.logDebug("Writing", s, "at", common.toHex(f.tell()))
     s = s.replace("'", "^")
     s = s.replace("’", "^")
+    s = s.replace("\"", "{")
     s = s.replace("“", "{")
     s = s.replace("”", "}")
     s = s.replace("～", "〜")
