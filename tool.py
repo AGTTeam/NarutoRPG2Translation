@@ -7,7 +7,7 @@ from hacktools import common, nds
 
 version = "0.12.0"
 data = "NarutoRPG2Data/"
-romfile = data + "naruto.nds"
+romfile = "naruto.nds"
 rompatch = data + "naruto_patched.nds"
 bannerfile = data + "repack/banner.bin"
 patchfile = data + "patch.xdelta"
@@ -21,7 +21,7 @@ outfolder = data + "repack/"
 @click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
-@click.option("--en", default=0)
+@click.option("--en", default=0, hidden=True)
 def extract(rom, bin, dat, img, en):
     datafolder = data
     if en > 0:
@@ -41,7 +41,7 @@ def extract(rom, bin, dat, img, en):
 
 
 @common.cli.command()
-@click.option("--no-rom", is_flag=True, default=False)
+@click.option("--no-rom", is_flag=True, default=False, hidden=True)
 @click.option("--bin", is_flag=True, default=False)
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
@@ -97,7 +97,7 @@ def repack(no_rom, bin, dat, img, snd):
         nds.repackRom(romfile, rompatch, outfolder, patchfile)
 
 
-@common.cli.command()
+@common.cli.command(hidden=True)
 @click.argument("text")
 def translate(text):
     ret = ""
@@ -109,11 +109,4 @@ def translate(text):
 
 
 if __name__ == "__main__":
-    click.echo("NarutoRPG2Translation version " + version)
-    if not os.path.isdir(data):
-        common.logError(data, "folder not found.")
-        quit()
-    if not os.path.isfile(romfile):
-        common.logError(romfile, "file not found.")
-        quit()
-    common.runCLI(common.cli)
+    common.setupTool("NarutoRPG2Translation", version, data, romfile, 0x73913b7b)

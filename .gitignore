@@ -1,8 +1,8 @@
 __pycache__
-
-build
+.DS_Store
+*.log
 NarutoRPG2Data
 NarutoRPG2en*
-*.log
-*.exe
+*.nds
+*.sav
 notes.md
