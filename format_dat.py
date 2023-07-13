@@ -191,7 +191,7 @@ def repack(data):
                                         usewordwrap = wordwrap2
                                         break
                                     else:
-                                        checkspeaker = checkspeaker[len(speakercode) + 1:]
+                                        checkspeaker = checkspeaker[len(speakercode) + 2:]
                                 if "msgbattle/" in filename:
                                     maxlines = 1
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
