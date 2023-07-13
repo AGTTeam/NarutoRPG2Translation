@@ -82,6 +82,9 @@ def extract(data):
                             sjis = sjis[:-2]
                         if sjis.endswith("|"):
                             sjis = sjis[:-1]
+                        # There's a bugged line in the msg_map_mp_022s file that we need to tweak manually
+                        if "<03><naruto>" in sjis:
+                            sjis = sjis.replace("<03><naruto>", "$$$")
                         common.logDebug(sjis)
                         common.logDebug("Reading ptr", i, "at", common.toHex(ptr), sjis)
                         sjissplit = sjis.split("$$$")
@@ -166,13 +169,17 @@ def repack(data):
                         ptr = fin.readUShort()
                         fin.seek(ptr)
                         sjis = readShiftJIS(fin)
-                        add1 = add2 = False
+                        add1 = add2 = buggedline = False
                         if sjis.endswith("$$"):
                             sjis = sjis[:-2]
                             add1 = True
                         if sjis.endswith("|"):
                             sjis = sjis[:-1]
                             add2 = True
+                        # There's a bugged line in the msg_map_mp_022s file that we need to tweak manually
+                        if "<03><naruto>" in sjis:
+                            sjis = sjis.replace("<03><naruto>", "$$$")
+                            buggedline = True
                         sjissplit = sjis.split("$$$")
                         usewordwrap = wordwrap
                         for j in range(len(sjissplit)):
@@ -187,11 +194,11 @@ def repack(data):
                                 checkspeaker = sjissplit[j]
                                 while checkspeaker[0] == "<":
                                     speakercode = checkspeaker.split(">")[0][1:]
-                                    if speakercode != "narrator" and speakercode in speakercodevalues:
+                                    if speakercode != "narrator" and (speakercode in speakercodevalues or speakercode.replace("small_", "") in speakercodevalues):
                                         usewordwrap = wordwrap2
                                         break
                                     else:
-                                        checkspeaker = checkspeaker[len(speakercode) + 1:]
+                                        checkspeaker = checkspeaker[len(speakercode) + 2:]
                                 if "msgbattle/" in filename:
                                     maxlines = 1
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
@@ -216,6 +223,8 @@ def repack(data):
                             if add3:
                                 sjissplit[j] += "|"
                         sjis = "$$$".join(sjissplit)
+                        if buggedline:
+                            sjis = sjis.replace("$$$", "<03><naruto>")
                         if add2:
                             sjis += "|"
                         if add1:
