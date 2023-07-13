@@ -174,6 +174,7 @@ def repack(data):
                             sjis = sjis[:-1]
                             add2 = True
                         sjissplit = sjis.split("$$$")
+                        usewordwrap = wordwrap
                         for j in range(len(sjissplit)):
                             add3 = False
                             if sjissplit[j].endswith("|"):
@@ -181,13 +182,16 @@ def repack(data):
                                 add3 = True
                             if sjissplit[j] != "":
                                 sjissplit[j] = getTranslation(sections, filename, sjissplit[j])
-                                usewordwrap = wordwrap
                                 maxlines = 2
                                 # Check if the string starts with a speaker
-                                if sjissplit[j][0] == "<":
-                                    speakercode = sjissplit[j].split(">")[0][1:]
+                                checkspeaker = sjissplit[j]
+                                while checkspeaker[0] == "<":
+                                    speakercode = checkspeaker.split(">")[0][1:]
                                     if speakercode != "narrator" and speakercode in speakercodevalues:
                                         usewordwrap = wordwrap2
+                                        break
+                                    else:
+                                        checkspeaker = checkspeaker[len(speakercode) + 1:]
                                 if "msgbattle/" in filename:
                                     maxlines = 1
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
