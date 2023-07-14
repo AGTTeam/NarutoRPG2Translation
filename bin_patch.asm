@@ -589,6 +589,12 @@ print_list equ 0x02029104
   b OVERWRITE_STR_SPRINTF_RET
   .pool
 
+  KUMITE_SIZE:
+  mov r1,0xe
+  strb r1,[r0,0x0]
+  mov r1,0xc
+  b KUMITE_SIZE_RET
+
   MOVE_RYO_RIGHT:
   mov r3,0
   add r0,r0,2
@@ -804,6 +810,16 @@ print_list equ 0x02029104
   .org 0x0203b824
   ;mov r3,0xe
   mov r3,0x10
+
+  ;Make the kumite box bigger
+  .org 0x0207983c
+  ;strb r1,r0[0x0]
+  b KUMITE_SIZE
+  KUMITE_SIZE_RET:
+  ;Move the kumite box left
+  .org 0x0200b5d0
+  ;mov r1,0x14
+  mov r1,0x12
 
   ;Make the formation textbox bigger
   .org 0x0205a8fc
