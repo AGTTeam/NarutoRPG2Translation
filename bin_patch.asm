@@ -834,6 +834,25 @@ print_list equ 0x02029104
   .org 0x0203b684
   bl MOVE_RYO_RIGHT
 
+  ;Note: change text position by 1 for every 8 value
+  ;Move battle reward turns left
+  .org 0x02068fdc
+  ;mov r0,0xe8
+  mov r0,0xd0
+  ;Move battle reward turns text left
+  .org 0x02069154
+  ;.dw 0x13e
+  .dw 0x13b
+  ;Move battle reward ryo left
+  .org 0x02069060
+  ;mov r0,0xe8
+  mov r0,0xd0
+  ;Move battle reward ryo text left
+  .org 0x02068fc8
+  ;mov r1,0xbe
+  mov r1,0xbb
+
+
   ;Move Searching for a partner wifi text left
   .org 0x0203fca4
   ;mov r0,0xa
