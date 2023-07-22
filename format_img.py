@@ -119,7 +119,10 @@ def repack(data):
             elif cells is None:
                 common.copyFile(acgin + file, acgout + file)
                 common.copyFile(acgin + mapfile, acgout + mapfile)
-                nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, usewidth, useheight, transptile=file.startswith("map/"), writelen=False, useoldpal=file.startswith("map/"))
+                if "map/dj_001" in file or "map/dj_002" in file or "map/dj_004" in file:
+                    nitro.writeNSCR(acgout + file, ncgr, nscr, workfolder + pngfile, palettes, usewidth, useheight)
+                else:
+                    nitro.writeMappedNSCR(acgout + file, acgout + mapfile, ncgr, nscr, workfolder + pngfile, palettes, usewidth, useheight, transptile=file.startswith("map/"), writelen=False, useoldpal=file.startswith("map/"))
             else:
                 common.copyFile(acgin + file, acgout + file)
                 nitro.writeNCER(acgout + file, "tempcell.bin", ncgr, cells, workfolder + pngfile, palettes)

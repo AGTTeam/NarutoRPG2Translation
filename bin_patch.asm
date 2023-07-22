@@ -87,7 +87,7 @@ print_list equ 0x02029104
   VWF_CHAR equ 8
   .dw 0
   ;Repeat one more time
-  .db 0 :: .db 0 :: .db 0 :: .db 0 :: .dw 0 :: .dw 0
+  .dw 0 :: .dw 0 :: .dw 0
   .align
   .macro load_vwf_data,reg
   ldr reg,=VWF_DATA
