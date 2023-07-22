@@ -57,6 +57,28 @@ print_list equ 0x02029104
   OVERWRITE_STR:
   ;0x020914d8 "のデータに　うわがきしますか？|　はい　　　いいえ"
   .ascii "Overwrite %s?" :: .db 0x0a :: .asciiz "    Yes            No"
+
+  BUY_STR:
+  ;0x0208eeb0 "　を<u48>こ　かいました$$"
+  .ascii "Bought " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  SELL_STR:
+  ;0x0208eec8 "　を<u48>こ　うりました$$"
+  .ascii "Sold " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  SELL_CONFIRM_STR:
+  ;0x0208ef6c "　を<u48>こ　うりますか？|　　はい　　いいえ"
+  .ascii "Sell " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  BUY_CONFIRM_STR:
+  ;0x0208ef98 "　を　<u48>こ　かいますか？|　　はい　　いいえ"
+  .ascii "Buy " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  EQUIP_STR:
+  ;0x0208eee0 "の　そうびをへんこうしました$$"
+  .ascii "Changed the equipment on %s." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  EQUIP_CONFIRM_STR:
+  ;0x0208ef44 "　をそうびしますか？|　　はい　　いいえ"
+  .ascii "Equip %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  EQUIP_SELECT_STR:
+  ;0x0208f0bc "　をだれにそうびしますか？|カーソルでえらんでください$$"
+  .ascii "Who will equip %c%c%s%s?" :: .db 0x0a :: .ascii "Use the cursor to select." :: .db 0x03 :: .db 0x01 :: .db 0x00
   .align
 
   VWF_DATA_SIZE equ 12
@@ -587,6 +609,35 @@ print_list equ 0x02029104
   OVERWRITE_STR_SPRINTF:
   ldr r1,=OVERWRITE_STR
   b OVERWRITE_STR_SPRINTF_RET
+
+  ;For these 2 strings we need to check an address, it's 0 for buying or 1 for selling
+  BUY_STR_SPRINTF:
+  ldr r1,=0x0221026c
+  ldr r1,[r1]
+  cmp r1,0x0
+  ldr r1,=BUY_STR
+  beq @@ret
+  ldr r1,=SELL_STR
+  @@ret:
+  b BUY_STR_SPRINTF_RET
+  BUY_CONFIRM_STR_SPRINTF:
+  ldr r1,=0x0221026c
+  ldr r1,[r1]
+  cmp r1,0x0
+  ldr r1,=BUY_CONFIRM_STR
+  beq @@ret
+  ldr r1,=SELL_CONFIRM_STR
+  @@ret:
+  b BUY_CONFIRM_STR_SPRINTF_RET
+  EQUIP_CONFIRM_STR_SPRINTF:
+  ldr r1,=EQUIP_CONFIRM_STR
+  b EQUIP_CONFIRM_STR_SPRINTF_RET
+  EQUIP_SELECT_STR_SPRINTF:
+  ldr r1,=EQUIP_SELECT_STR
+  b EQUIP_SELECT_STR_SPRINTF_RET
+  EQUIP_STR_SPRINTF:
+  ldr r1,=EQUIP_STR
+  b EQUIP_STR_SPRINTF_RET
   .pool
 
   KUMITE_SIZE:
@@ -770,7 +821,7 @@ print_list equ 0x02029104
   .org 0x020292b8
   bl SHORTEN_PRINT_LIST
 
-  ;Change save/load string to move sprintf parameters
+  ;Change save/load strings to move sprintf parameters
   .org 0x02073260
   b LOAD_STR_SPRINTF
   LOAD_STR_SPRINTF_RET:
@@ -780,6 +831,23 @@ print_list equ 0x02029104
   .org 0x02073528
   b OVERWRITE_STR_SPRINTF
   OVERWRITE_STR_SPRINTF_RET:
+
+  ;Change item-related strings to move sprintf parameters
+  .org 0x0205cc24
+  b BUY_STR_SPRINTF
+  BUY_STR_SPRINTF_RET:
+  .org 0x0205ca18
+  b BUY_CONFIRM_STR_SPRINTF
+  BUY_CONFIRM_STR_SPRINTF_RET:
+  .org 0x0205cd98
+  b EQUIP_CONFIRM_STR_SPRINTF
+  EQUIP_CONFIRM_STR_SPRINTF_RET:
+  .org 0x0205ce90
+  b EQUIP_SELECT_STR_SPRINTF
+  EQUIP_SELECT_STR_SPRINTF_RET:
+  .org 0x0205cfdc
+  b EQUIP_STR_SPRINTF
+  EQUIP_STR_SPRINTF_RET:
 
   ;Use a different strlen function for spacing some strings
   .org 0x02029274
