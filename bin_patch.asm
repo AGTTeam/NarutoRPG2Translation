@@ -852,6 +852,11 @@ print_list equ 0x02029104
   ;Use a different strlen function for spacing some strings
   .org 0x02029274
   bl STRLEN_VWF
+  ;Use the same function for the map text
+  .org 0x0206f840
+  bl STRLEN_VWF
+  .org 0x0206fcec
+  bl STRLEN_VWF
 
   ;Move the save/load location text left
   .org 0x02072444
