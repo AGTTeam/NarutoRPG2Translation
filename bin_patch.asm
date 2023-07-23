@@ -60,22 +60,22 @@ print_list equ 0x02029104
 
   BUY_STR:
   ;0x0208eeb0 "　を<u48>こ　かいました$$"
-  .ascii "Bought " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  .ascii "Bought " :: .db 0x02 :: .db 0x30 :: .ascii "of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
   SELL_STR:
   ;0x0208eec8 "　を<u48>こ　うりました$$"
-  .ascii "Sold " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  .ascii "Sold " :: .db 0x02 :: .db 0x30 :: .ascii "of %c%c%s%s." :: .db 0x03 :: .db 0x01 :: .db 0x00
   SELL_CONFIRM_STR:
   ;0x0208ef6c "　を<u48>こ　うりますか？|　　はい　　いいえ"
-  .ascii "Sell " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  .ascii "Sell " :: .db 0x02 :: .db 0x30 :: .ascii "of %c%c%s%s?" :: .db 0x0a :: .asciiz "       Yes       No"
   BUY_CONFIRM_STR:
   ;0x0208ef98 "　を　<u48>こ　かいますか？|　　はい　　いいえ"
-  .ascii "Buy " :: .db 0x02 :: .db 0x30 :: .ascii " of %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  .ascii "Buy " :: .db 0x02 :: .db 0x30 :: .ascii "of %c%c%s%s?" :: .db 0x0a :: .asciiz "       Yes       No"
   EQUIP_STR:
   ;0x0208eee0 "の　そうびをへんこうしました$$"
   .ascii "Changed the equipment on %s." :: .db 0x03 :: .db 0x01 :: .db 0x00
   EQUIP_CONFIRM_STR:
   ;0x0208ef44 "　をそうびしますか？|　　はい　　いいえ"
-  .ascii "Equip %c%c%s%s?" :: .db 0x0a :: .asciiz "    Yes            No"
+  .ascii "Equip %c%c%s%s?" :: .db 0x0a :: .asciiz "       Yes       No"
   EQUIP_SELECT_STR:
   ;0x0208f0bc "　をだれにそうびしますか？|カーソルでえらんでください$$"
   .ascii "Who will equip %c%c%s%s?" :: .db 0x0a :: .ascii "Use the cursor to select." :: .db 0x03 :: .db 0x01 :: .db 0x00
