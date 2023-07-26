@@ -855,7 +855,15 @@ print_list equ 0x02029104
   ;Use the same function for the map text
   .org 0x0206f840
   bl STRLEN_VWF
+  .org 0x0206f88c
+  bl STRLEN_VWF
+  .org 0x0206fa10
+  bl STRLEN_VWF
+  .org 0x0206fa5c
+  bl STRLEN_VWF
   .org 0x0206fcec
+  bl STRLEN_VWF
+  .org 0x0206fd38
   bl STRLEN_VWF
 
   ;Move the save/load location text left
