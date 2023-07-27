@@ -144,6 +144,8 @@ def readImage(infolder, file, nob=None):
                 with common.Stream(infolder + mergefile, "rb") as fin:
                     f.write(fin.read())
         palfile = "temp.acl"
+    if palfile.startswith("sys/bg/sys_bg_d_000"):
+        palfile = "sys/bg/sys_bg_g_000.acl"
     if not os.path.isfile(infolder + palfile):
         if palfile.startswith("b_chr/mon_shadow/b_kage"):
             palfile = "b_chr/mon_shadow/b_kage_000.acl"
@@ -233,7 +235,7 @@ def readImage(infolder, file, nob=None):
     # Read maps
     nscr = None
     mapfile = file.replace(".acg", ".asc")
-    if os.path.isfile(infolder + mapfile) and "cut_in" not in file:
+    if os.path.isfile(infolder + mapfile) and "cut_in" not in file and "sys_bg_g_000" not in file:
         size = os.path.getsize(infolder + mapfile)
         nscr = nitro.NSCR()
         nscr.mapoffset = 0
@@ -669,6 +671,23 @@ manualcells = {
             {"width": 16, "height": 8, "x": 16, "y": 40},
             {"width": 24, "height": 8, "x": 48, "y": 40},
             {"width": 8, "height": 24, "x": 72, "y": 16},
+        ]},
+    ],
+    "sys/bg/sys_bg_g_000.acg": [
+        {"pal": 1, "cells": [
+            {"width": 256, "height": 184},
+        ]},
+        {"repeat": 4, "cells": [
+            {"width": 32, "height": 32},
+        ]},
+        {"cells": [
+            {"width": 144, "height": 40},
+        ]},
+        {"repeat": 2, "cells": [
+            {"width": 8, "height": 8},
+        ]},
+        {"repeat": 2, "cells": [
+            {"width": 80, "height": 32},
         ]},
     ],
 }

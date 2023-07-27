@@ -650,6 +650,12 @@ print_list equ 0x02029104
   mov r1,0xc
   b KUMITE_SIZE_RET
 
+  SUMMONING_SHEET_SIZE:
+  mov r2,0xf
+  strb r2,[r0,0x0]
+  mov r2,0xc
+  b SUMMONING_SHEET_SIZE_RET
+
   MOVE_RYO_RIGHT:
   mov r3,0
   add r0,r0,2
@@ -905,6 +911,16 @@ print_list equ 0x02029104
   .org 0x0200b5d0
   ;mov r1,0x14
   mov r1,0x12
+
+  ;Make the summoning sheet box bigger
+  .org 0x02079500
+  ;strb r2,r0[0x0]
+  b SUMMONING_SHEET_SIZE
+  SUMMONING_SHEET_SIZE_RET:
+  ;Move the summoning sheet box left
+  .org 0x0200b404
+  ;mov r1,0x14
+  mov r1,0x11
 
   ;Make the formation textbox bigger
   .org 0x0205a8fc
