@@ -4,6 +4,8 @@
 SHORTEN_ITEM_NAME_VALUE equ 12*8
 ;Max length for item name when using one from the Item menu
 SHORTEN_ITEM_NAME_USE_VALUE equ 12*8
+;Max length for item name in battle rewards
+SHORTEN_ITEM_NAME_REWARD_VALUE equ 12*8
 ;Max length for equip names in Equip menu (small on the left)
 SHORTEN_EQUIP_NAME_LEFT_VALUE equ 10*8
 ;Max length for equip names in Equip menu and when selecting a slot (at the top)
@@ -515,6 +517,8 @@ print_list equ 0x02029104
   shorten SHORTEN_ITEM_NAME_VALUE
   SHORTEN_ITEM_NAME_USE:
   shorten SHORTEN_ITEM_NAME_USE_VALUE
+  SHORTEN_ITEM_NAME_REWARD:
+  shorten SHORTEN_ITEM_NAME_REWARD_VALUE
   SHORTEN_EQUIP_NAME_LEFT:
   shorten SHORTEN_EQUIP_NAME_LEFT_VALUE
   SHORTEN_EQUIP_NAME:
@@ -932,7 +936,9 @@ print_list equ 0x02029104
   .org 0x02068fc8
   ;mov r1,0xbe
   mov r1,0xbb
-
+  ;Shorten reward item names
+  .org 0x0206912c
+  bl SHORTEN_ITEM_NAME_REWARD
 
   ;Move Searching for a partner wifi text left
   .org 0x0203fca4
