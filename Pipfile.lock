@@ -32,15 +32,6 @@
             "markers": "platform_system == 'Windows'",
             "version": "==0.4.6"
         },
-        "crcmod": {
-            "hashes": [
-                "sha256:50586ab48981f11e5b117523d97bb70864a2a1af246cf6e4f5c4a21ef4611cd1",
-                "sha256:69a2e5c6c36d0f096a7beb4cd34e5f882ec5fd232efb710cdb85d4ff196bd52e",
-                "sha256:737fb308fa2ce9aed2e29075f0d5980d4a89bfbec48a368c607c5c63b3efb90e",
-                "sha256:dc7051a0db5f2bd48665a990d3ec1cc305a466a77358ca4492826f41f283601e"
-            ],
-            "version": "==1.7"
-        },
         "customtkinter": {
             "hashes": [
                 "sha256:e93448a8d22121e20ec16e95960a8306e17cf7e0079766f5804b2e855e614937",
@@ -123,10 +114,10 @@
         },
         "ndspy": {
             "hashes": [
-                "sha256:b928721fe0bdbbdd9b1b6568d1395a72fa74d0781db345286f6ce2f7be8a23ac",
-                "sha256:de53676e262ed88151526c4f5118fa9beaa8a301855d32cfdc623e4bd6de2991"
+                "sha256:1576ca7ec5542075511185133c20c9b722b118f4aaf52929f0408d6081eee013",
+                "sha256:46bdb1491ea27f6b14b15a51930a607b17e4502ad42ad12674ea4c5d04d66ea7"
             ],
-            "version": "==4.0.0"
+            "version": "==4.1.0"
         },
         "pillow": {
             "hashes": [
