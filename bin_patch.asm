@@ -22,6 +22,8 @@ SHORTEN_SHOP_VALUE equ 13*8
 SHORTEN_VALUABLES_VALUE equ 17*8
 ;Max length for jutsu name in Jutsu menu when using one
 SHORTEN_JUTSU_USE_VALUE equ 11*8
+;Max length for jutsu name in Jutsu menu
+SHORTEN_JUTSU_LIST_VALUE equ 12*8
 ;Max length for jutsu name in battle
 SHORTEN_BATTLE_JUTSU_LIST_VALUE equ 13*8
 ;Max length for item name in battle
@@ -33,7 +35,7 @@ print_list equ 0x02029104
 
 .open "NarutoRPG2Data/repack/arm9.bin",0x1ff9000 - 0x92fc0
   .orga 0x92fc0
-  .area 0x1000
+  .area 0x1200
 
   ;ASCII to SJIS lookup table, also includes VWF values
   SJIS_LOOKUP:
@@ -45,6 +47,18 @@ print_list equ 0x02029104
 
   SHORTEN_BUFFER:
   .fill 0x20,0
+  .align
+
+  SHORTEN_BUFFER2:
+  .fill 0x20,0
+  .align
+
+  DICTIONARY_BUFFER:
+  .fill 0x40,0
+  .align
+
+  DICTIONARY_DATA:
+  .include "NarutoRPG2Data/dictionary.asm"
   .align
 
   SHORTEN_AMOUNT:
@@ -433,16 +447,78 @@ print_list equ 0x02029104
   bx lr
   .pool
 
+  DICTIONARY_PRINT_STRING:
+  mov r0,0x1d8
+  cmp r2,0x0
+  bxeq lr
+  push {r0,r1,r3,r4,lr}
+  mov r0,r2
+  bl DICTIONARY
+  mov r2,r0
+  pop {r0,r1,r3,r4,lr}
+  bx lr
+
+  DICTIONARY_SPRINTF:
+  push {r1,r2,r3,r4,lr}
+  bl DICTIONARY
+  pop {r1,r2,r3,r4,lr}
+  str r0,[sp]
+  bx lr
+
+  DICTIONARY:
+  ;r0 = original string ptr
+  ;Assumes the stack is already set up
+  mov r2,r0
+  ldr r1,=DICTIONARY_BUFFER
+  @@loop:
+  ldrb r3,[r0],0x1
+  cmp r3,0x1f
+  beq @@dict
+  strb r3,[r1],0x1
+  cmp r3,0x0
+  beq @@ret
+  b @@loop
+  ;Found a dictionary byte, set r2 to the buffer and write the string to it
+  @@dict:
+  ldr r2,=DICTIONARY_BUFFER
+  ldrb r3,[r0],0x1
+  ldr r4,=DICTIONARY_DATA
+  add r4,r4,r3,lsl 0x2
+  ldr r4,[r4]
+  @@dictloop:
+  ldrb r3,[r4],0x1
+  cmp r3,0x0
+  beq @@loop
+  strb r3,[r1],0x1
+  b @@dictloop
+  @@ret:
+  mov r0,r2
+  bx lr
+  .pool
+
   ;r0 = original string
   ;r1 = max length
   ;r2 = result
   ;r3 = VWF lookup
   SHORTEN_STR:
-  push {r4-r9}
-  mov r4,0 ;vwf counter
-  mov r7,0 ;tile counter
+  push {r4-r10}
+  ;Copy everything to another buffer taking care of dictionary values
+  ldr r10,=SHORTEN_BUFFER2
+  @@buff2loop:
+  ldrb r5,[r0],0x1
+  cmp r5,0x1f
+  beq @@dictionary
+  strb r5,[r10],0x1
+  cmp r5,0x0
+  bne @@buff2loop
+  @@buff2end:
+  ldr r0,=SHORTEN_BUFFER2
+  ;Setup variables
+  mov r4,0x0 ;vwf counter
+  mov r7,0x0 ;tile counter
   mov r8,r2 ;last good tile ptr
   mov r9,r2 ;current tile ptr
+  mov r10,0x0 ;dictionary ptr
   @@loop:
   ldrb r5,[r0],0x1
   ;Check for 0 byte
@@ -450,7 +526,7 @@ print_list equ 0x02029104
   beq @@return
   ;Check for item code, also add an extra 8 to the size
   cmp r5,0x13
-  addeq r4,r4,8
+  addeq r4,r4,0x8
   beq @@copysjis
   ;Check for sjis
   cmp r5,0x7f
@@ -469,7 +545,7 @@ print_list equ 0x02029104
   b @@check_tile
   @@copysjis:
   ;Check if we can fit 8 pixels
-  add r4,r4,8
+  add r4,r4,0x8
   cmp r4,r1
   bge @@shorten
   ;Copy 2 bytes and move on
@@ -484,6 +560,20 @@ print_list equ 0x02029104
   movne r8,r9
   movne r9,r2
   b @@loop
+  ;Handle the dictionary
+  @@dictionary:
+  ldrb r5,[r0],0x1
+  mov r4,r0
+  ldr r0,=DICTIONARY_DATA
+  add r0,r0,r5,lsl 0x2
+  ldr r0,[r0]
+  @@dictloop:
+  ldrb r5,[r0],0x1
+  cmp r5,0x0
+  moveq r0,r4
+  beq @@buff2loop
+  strb r5,[r10],0x1
+  b @@dictloop
   @@shorten:
   mov r2,r9
   ;Write … and return
@@ -494,7 +584,7 @@ print_list equ 0x02029104
   @@return:
   mov r4,0
   strb r4,[r2]
-  pop {r4-r9}
+  pop {r4-r10}
   bx lr
   .pool
 
@@ -599,6 +689,8 @@ print_list equ 0x02029104
 
   SHORTEN_EQUIP_LIST:
   wrap_print_list SHORTEN_EQUIP_LIST_VALUE,SHORTEN_EQUIP_LIST_RET,0
+  SHORTEN_JUTSU_LIST:
+  wrap_print_list SHORTEN_JUTSU_LIST_VALUE,SHORTEN_JUTSU_LIST_RET,0
   SHORTEN_STATUS_JUTSU_LIST:
   wrap_print_list SHORTEN_STATUS_JUTSU_LIST_VALUE,SHORTEN_STATUS_JUTSU_LIST_RET,0
   SHORTEN_BATTLE_LIST:
@@ -747,6 +839,15 @@ print_list equ 0x02029104
   .org 0x020278dc
   nop
 
+  ;Dictionary compression hook for print_string function
+  .org 0x0202660c
+  ;mov r0,0x1d8
+  bl DICTIONARY_PRINT_STRING
+  ;Dictionary compression hook for found item sprintf
+  .org 0x0206bfb4
+  ;str r0,[sp]
+  bl DICTIONARY_SPRINTF
+
   ;Extend main menu text boxes
   .org 0x0203bed8
   ;mov r0,0xc
@@ -784,6 +885,10 @@ print_list equ 0x02029104
   add r0,r10,0x7
   .org 0x02052ef0
   add r0,r10,0x7
+  ;Shorten jutsu names in Jutsu menu
+  .org 0x020574d0
+  b SHORTEN_JUTSU_LIST
+  SHORTEN_JUTSU_LIST_RET:
   ;Shorten equip names in Equip menu when changing a slot
   .org 0x0205346c
   b SHORTEN_EQUIP_LIST

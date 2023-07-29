@@ -1,11 +1,9 @@
 import codecs
-import os
-from typing import final
 import format_dat
 from hacktools import common, nds
 
 binrange = [(0x88f54, 0x9012a), (0x9013c, 0x9118c), (0x91194, 0x91978), (0x91998, 0x92c00)]
-freeranges = [(0x92fc0+0x1000, 0x92fc0+0x2000, True)]
+freeranges = [(0x92fc0+0x1200, 0x92fc0+0x2000, True)]
 
 
 def extract(data):
@@ -41,6 +39,7 @@ def repack(data):
     headerout = data + "repack/header.bin"
     binfile = data + "bin_input.txt"
     binout = data + "repack/arm9.bin"
+    dictionarydata = data + "dictionary.asm"
 
     injectaddr = 0x01ff9000
     nds.expandBIN(binin, binout, headerin, headerout, 0x2000, injectaddr)
@@ -54,4 +53,17 @@ def repack(data):
                 f.writeUShort(0)
                 f.writeUShort(8)
     nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=injectaddr - 0x92fc0, nocopy=True)
+    # Write the dictionary file before running the patch
+    with codecs.open(dictionarydata, "w", "utf-8") as f:
+        alldictionary = []
+        i = 0
+        for dictentry in format_dat.dictionary:
+            dictname = "DICTIONARY_" + common.toHex(i)
+            dictvalue = dictname + ":\n  .asciiz \"" + dictentry + "\""
+            f.write(".dw " + dictname + "\n")
+            alldictionary.append(dictvalue)
+            i += 1
+        f.write("\n")
+        f.write("\n".join(alldictionary))
+        f.write("\n")
     common.armipsPatch(common.bundledFile("bin_patch.asm"))

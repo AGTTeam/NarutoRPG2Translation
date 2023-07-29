@@ -9,6 +9,15 @@ wordwrap2 = 176
 wordwrapformation = 112
 # Wordwrapping value for battle help (item/jutsu)
 wordwrapbattle = 118
+# Dictionary compression for certain .dat files
+dictionary = [
+    "Pills", "Scroll", "Medicine", "Hotsprings to Visit", "Water Style", "Lightning Style",
+    "Fire Style", "Earth Style", "Jutsu", "Nine-Tailed", "Ninja Art", "Ninja", "Paper Bomb",
+    "Uzumaki Barrage", "Secret Black", "Summon: ", "All Weapons", "Spider Thread",
+    "Spider Battle", "Evil Illusion", "Shadow Possession", "Two Thousand", "Hidden Leaf",
+    "Blood-sucking", "Poisonous", "Illusion", "Only Girl",
+]
+dictionaryfiles = ["param/item_data.dat", "param/jyutu_data.dat", "param/mon_param.dat"]
 
 
 def extract(data):
@@ -136,6 +145,7 @@ def repack(data):
             fixedsize, fixedmax = fixedfiles[file]
         if file.startswith("param/") and fixedsize == 0:
             continue
+        usedictionary = file in dictionaryfiles
         with common.Stream(datin + file, "rb") as fin:
             with common.Stream(datout + file, "rb+") as f:
                 if fixedsize > 0:
@@ -147,11 +157,11 @@ def repack(data):
                             break
                         sjis = getTranslation(sections, filename, readShiftJIS(fin))
                         if "msg_f_iteminst" in filename:
-                            writeShiftJIS(f, sjis, fixedmax)
+                            writeShiftJIS(f, sjis, fixedmax, usedictionary=usedictionary)
                             fin.seek(i * fixedsize + 0x6a)
                             f.seek(fin.tell())
                             sjis = getTranslation(sections, filename, readShiftJIS(fin))
-                            writeShiftJIS(f, sjis, 0x35)
+                            writeShiftJIS(f, sjis, 0x35, usedictionary=usedictionary)
                         else:
                             if "msg_menufieldcmd" in filename:
                                 sjis = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
@@ -159,7 +169,7 @@ def repack(data):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapformation, detectTextCode, strip=False)
                             elif "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapbattle, detectTextCode, strip=False)
-                            writeShiftJIS(f, sjis, fixedmax)
+                            writeShiftJIS(f, sjis, fixedmax, usedictionary=usedictionary)
                         i += 1
                 else:
                     ptrnum = fin.readUInt()
@@ -449,14 +459,14 @@ def readShiftJIS(f, encoding="shift_jis", allowunk=True):
 
 
 def writeShiftJISBIN(f, s, maxlen=0, encoding="shift_jis"):
-    return writeShiftJIS(f, s, maxlen-1, True)
+    return writeShiftJIS(f, s, maxlen-1, True, False)
 
 
 def logLongError(type, x, s, maxlen):
     common.logError("Line", s, "too long while writing", type, str(x) + "/" + str(len(s)), "maxlen", str(maxlen))
 
 
-def writeShiftJIS(f, s, maxlen=-1, silent=False):
+def writeShiftJIS(f, s, maxlen=-1, silent=False, usedictionary=False):
     common.logDebug("Writing", s, "at", common.toHex(f.tell()))
     s = s.replace("'", "^")
     s = s.replace("’", "^")
@@ -466,6 +476,11 @@ def writeShiftJIS(f, s, maxlen=-1, silent=False):
     s = s.replace("～", "〜")
     s = s.replace("$$$", "$$<04>")
     s = s.replace("$$", "<03><01>")
+    i = 0
+    if usedictionary:
+        for dictkey in dictionary:
+            s = s.replace(dictkey, "<1f" + common.toHex(i) + ">")
+            i += 1
     i = 0
     x = 0
     failed = False
