@@ -3,7 +3,7 @@
 ;Max length for item names in Item menu
 SHORTEN_ITEM_NAME_VALUE equ 12*8
 ;Max length for item name when using one from the Item menu
-SHORTEN_ITEM_NAME_USE_VALUE equ 12*8
+SHORTEN_ITEM_NAME_USE_VALUE equ 11*8
 ;Max length for item name in battle rewards
 SHORTEN_ITEM_NAME_REWARD_VALUE equ 12*8
 ;Max length for equip names in Equip menu (small on the left)
