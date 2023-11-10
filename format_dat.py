@@ -233,7 +233,7 @@ def repack(data):
                             sjis += "$$"
                         f.writeUShortAt(4 + i * 2, f.tell())
                         writeShiftJIS(f, sjis)
-    common.logMessage("Done!")
+    common.logMessage("Done! Translation is at {0:.2f}%".format((100 * transtot) / chartot))
 
 
 def getTranslation(sections, file, sjis):

@@ -44,7 +44,7 @@ print_list equ 0x02029104
   .align
 
   SHORTEN_BUFFER:
-  .fill 0x20,0
+  .fill 0x30,0
   .align
 
   SHORTEN_AMOUNT:
