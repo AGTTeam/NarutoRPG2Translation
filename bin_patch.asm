@@ -934,6 +934,12 @@ print_list equ 0x02029104
   ;Move Ryo a bit to the right
   .org 0x0203b684
   bl MOVE_RYO_RIGHT
+  ;Same but for the weapon/armor shop
+  .org 0x0207a334
+  ;mov r1,0x12
+  mov r1,0x11
+  .org 0x02079ce0
+  bl MOVE_RYO_RIGHT
 
   ;Note: change text position by 1 for every 8 value
   ;Move battle reward turns left
