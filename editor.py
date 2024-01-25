@@ -94,7 +94,7 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
             img.paste(old_img, (0, old_img.height))
         i = 0
         while i < len(wordwrapped):
-            c = wordwrapped[i].replace("“", "{").replace("”", "}").replace("'", "^")
+            c = wordwrapped[i].replace("“", "{").replace("”", "}").replace("’", "^")
             if c == "#":
                 break
             if c == "<":
