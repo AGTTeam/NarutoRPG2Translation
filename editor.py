@@ -36,7 +36,7 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
         
         originalfontpath = "NarutoRPG2Data/out_FONT/sys_bg_a_00"
         workfontpath = "NarutoRPG2Data/work_FONT/sys_bg_a_00"
-        fontoutput = "NarutoRPG2Data/font_output.txt"
+        fontoutput = "NarutoRPG2Data/font_input.txt"
         fontconfig = "NarutoRPG2Data/fontconfig.txt"
 
         self.bg1 = Image.open("editor1.png")
@@ -47,6 +47,8 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
         with codecs.open(fontoutput, "r", "utf-8") as input:
             section = common.getSection(input, "", inorder=True)
             for fontid in section:
+                if fontid["value"] == "":
+                    continue
                 self.idtochar[int(fontid["value"])] = fontid["name"]
         with codecs.open(fontconfig, "r", "utf-8") as input:
             section = common.getSection(input, "", inorder=True)
