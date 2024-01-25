@@ -94,7 +94,7 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
             img.paste(old_img, (0, old_img.height))
         i = 0
         while i < len(wordwrapped):
-            c = wordwrapped[i]
+            c = wordwrapped[i].replace("“", "{").replace("”", "}").replace("'", "^")
             if c == "#":
                 break
             if c == "<":
@@ -118,6 +118,7 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
                 charwidth = self.chartolen[c]
             else:
                 charwidth = 8
+            c = c.replace("～", "〜")
             if c not in self.font:
                 common.logMessage("Char not found", c)
                 currentx += 8
