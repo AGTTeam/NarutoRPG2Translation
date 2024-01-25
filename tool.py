@@ -3,9 +3,10 @@ import os
 import click
 import ndspy.soundArchive
 import ndspy.soundStream
+from editor import EditorApp
 from hacktools import common, nds
 
-version = "0.13.1"
+version = "0.14.0"
 data = "NarutoRPG2Data/"
 romfile = "naruto.nds"
 rompatch = data + "naruto_patched.nds"
@@ -95,6 +96,12 @@ def repack(no_rom, bin, dat, img, snd):
             common.mergeFolder(replacefolder, outfolder)
         nds.editBannerTitle(bannerfile, "Naruto RPG 2\n~Chidori VS Rasengan~\nTOMY")
         nds.repackRom(romfile, rompatch, outfolder, patchfile)
+
+
+@common.cli.command(hidden=True)
+def editor():
+    app = EditorApp(version)
+    app.mainloop()
 
 
 @common.cli.command(hidden=True)
