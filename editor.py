@@ -86,6 +86,8 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
             wordwrap = format_dat.wordwrap2
         currentx = startx
         currenty = starty
+        if "#" in text:
+            text = text.split("#")[0]
         wordwrapped = common.wordwrap(text, self.glyphs, wordwrap, format_dat.detectTextCode, strip=False)
         if wordwrapped.count("|") > 1:
             old_img = img
@@ -94,7 +96,13 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
             img.paste(old_img, (0, old_img.height))
         i = 0
         while i < len(wordwrapped):
-            c = wordwrapped[i].replace("“", "{").replace("”", "}").replace("’", "^")
+            c = wordwrapped[i]
+            c = c.replace("'", "^")
+            c = c.replace("’", "^")
+            c = c.replace("\"", "{")
+            c = c.replace("“", "{")
+            c = c.replace("”", "}")
+            c = c.replace("～", "〜")
             if c == "#":
                 break
             if c == "<":
@@ -171,7 +179,8 @@ class EditorApp(customtkinter.CTk):
         super().__init__()
         self.title("NarutoRPGTranslation v" + version + " Editor")
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
 
         self.topframe = customtkinter.CTkFrame(self, height=35, corner_radius=0)
         self.topframe.grid(row=0, column=0, padx=10, pady=0, sticky="nw")
@@ -180,7 +189,7 @@ class EditorApp(customtkinter.CTk):
         self.openbutton.grid(row=0, column=0, padx=10, pady=2)
         self.savebutton = customtkinter.CTkButton(self.topframe, border_width=2, width=70, text="Save", command=self.save)
         self.savebutton.grid(row=0, column=1, padx=10, pady=2)
-        self.editorframe = EditorFrame(master=self, width=256+400+400+50, height=800, corner_radius=0, fg_color="transparent")
+        self.editorframe = EditorFrame(master=self, width=256+400+400+50, height=600, corner_radius=0, fg_color="transparent")
         self.editorframe.grid(row=1, column=0, sticky="nsew")
         self.editorframe.openFile("NarutoRPG2Data/dat_input/msgmap/msg_map_dj_02ao.dat")
 
