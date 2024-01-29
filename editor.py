@@ -33,6 +33,7 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
         self.chartolen = {}
         self.chartosjis = {}
         self.font = {}
+        self.filepath = ""
         
         originalfontpath = "NarutoRPG2Data/out_FONT/sys_bg_a_00"
         workfontpath = "NarutoRPG2Data/work_FONT/sys_bg_a_00"
@@ -191,7 +192,7 @@ class EditorApp(customtkinter.CTk):
         self.savebutton.grid(row=0, column=1, padx=10, pady=2)
         self.editorframe = EditorFrame(master=self, width=256+400+400+50, height=600, corner_radius=0, fg_color="transparent")
         self.editorframe.grid(row=1, column=0, sticky="nsew")
-        self.editorframe.openFile("NarutoRPG2Data/dat_input/msgmap/msg_map_dj_02ao.dat")
+        #self.editorframe.openFile("NarutoRPG2Data/dat_input/msgmap/msg_map_dj_02ao.dat")
 
     def open(self):
         file = tkinter.filedialog.askopenfilename(initialdir="NarutoRPG2Data/dat_input/msgmap", filetypes=[('DAT files', '*.dat')])
@@ -199,6 +200,8 @@ class EditorApp(customtkinter.CTk):
             self.editorframe.openFile(file)
 
     def save(self):
+        if self.editorframe.filepath == "":
+            return
         with codecs.open(self.editorframe.filepath, "w", "utf-8") as output:
             for alltext in self.editorframe.alltexts:
                 output.write(alltext[1]._textbox.get(1.0, tkinter.END).strip())
