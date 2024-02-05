@@ -157,7 +157,7 @@ def repack(data):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
                             elif "msg_menujinkei" in filename:
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapformation, detectTextCode, strip=False)
-                            elif "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
+                            elif "msgbattle" in filename or "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapbattle, detectTextCode, strip=False)
                             writeShiftJIS(f, sjis, fixedmax)
                         i += 1
