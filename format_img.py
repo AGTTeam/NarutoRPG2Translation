@@ -17,6 +17,8 @@ def extract(data):
     common.makeFolder(outfolder)
     nob = readNOB(infolder)
     for file in common.showProgress(common.getFiles(infolder, ".acg")):
+        if "title/tl_hitai" not in file:
+            continue
         if file.startswith("map/anm/"):
             continue
         totfiles += 1
@@ -425,6 +427,36 @@ manualcells = {
             {"width": 32, "height": 16, "x": 96},
             {"width": 16, "height": 16, "x": 128},
             {"width": 8, "height": 16, "x": 144},
+        ]}
+    ],
+    "title/tl_2.acg": [
+        {"cells": [
+            {"width": 32, "height": 8, "x": 24},
+            {"width": 64, "height": 8, "x": 8, "y": 8},
+            {"width": 64, "height": 8, "x": 8, "y": 16},
+            {"width": 64, "height": 8, "x": 8, "y": 24},
+            {"width": 64, "height": 8, "x": 8, "y": 32},
+            {"width": 64, "height": 8, "x": 8, "y": 40},
+            {"width": 64, "height": 8, "x": 8, "y": 48},
+            {"width": 64, "height": 8, "x": 8, "y": 56},
+            {"width": 64, "height": 8, "x": 8, "y": 64},
+            {"width": 32, "height": 16, "x": 8, "y": 72},
+            {"width": 32, "height": 8, "x": 40, "y": 72},
+            {"width": 8, "height": 32, "y": 64},
+            {"width": 24, "height": 8, "x": 8, "y": 88},
+            {"width": 8, "height": 8, "x": 40, "y": 80},
+        ]}
+    ],
+    "title/tl_hitai.acg": [
+        {"cells": [
+            {"width": 64, "height": 8, "x": 40},
+            {"width": 64, "height": 32, "y": 8},
+            {"width": 32, "height": 32, "x": 64, "y": 8},
+            {"width": 32, "height": 16, "y": 40},
+            {"width": 32, "height": 16, "x": 32, "y": 40},
+            {"width": 40, "height": 8, "x": 64, "y": 40},
+            {"width": 8, "height": 32, "x": 96, "y": 8},
+            {"width": 8, "height": 16, "x": 104, "y": 24},
         ]}
     ],
     "title/tl_rpg.acg": [
