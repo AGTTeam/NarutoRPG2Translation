@@ -17,8 +17,6 @@ def extract(data):
     common.makeFolder(outfolder)
     nob = readNOB(infolder)
     for file in common.showProgress(common.getFiles(infolder, ".acg")):
-        if "title/tl_hitai" not in file:
-            continue
         if file.startswith("map/anm/"):
             continue
         totfiles += 1
