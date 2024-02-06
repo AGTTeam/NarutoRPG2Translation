@@ -10,7 +10,7 @@ wordwrapformation = 112
 # Wordwrapping value for battle help (item/jutsu)
 wordwrapbattle = 118
 # Wordwrapping value for battle messages
-wordwrapbattlemsg = 118
+wordwrapbattlemsg = 206
 
 
 def extract(data):
