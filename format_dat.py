@@ -9,6 +9,8 @@ wordwrap2 = 176
 wordwrapformation = 112
 # Wordwrapping value for battle help (item/jutsu)
 wordwrapbattle = 118
+# Wordwrapping value for battle messages
+wordwrapbattlemsg = 206
 
 
 def extract(data):
@@ -157,7 +159,7 @@ def repack(data):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
                             elif "msg_menujinkei" in filename:
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapformation, detectTextCode, strip=False)
-                            elif "msgbattle" in filename or "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
+                            elif "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapbattle, detectTextCode, strip=False)
                             writeShiftJIS(f, sjis, fixedmax)
                         i += 1
@@ -201,6 +203,7 @@ def repack(data):
                                         checkspeaker = checkspeaker[len(speakercode) + 2:]
                                 if "msgbattle/" in filename:
                                     maxlines = 1
+                                    usewordwrap = wordwrapbattlemsg
                                 if "msg_staffroll" in filename:
                                     maxlines = 999
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
