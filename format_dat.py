@@ -58,7 +58,7 @@ def extract(data):
                             if sjis != "":
                                 out.write(sjis + "=\n")
                         # This particular file has two strings for each item
-                        if "msg_f_iteminst" in file:
+                        if "msg_f_iteminst" in file or "msg_f_jyutuinst" in file:
                             f.seek(i * fixedsize + 0x6a)
                             sjis = readShiftJIS(f)
                             strlen = f.tell() - (i * fixedsize + 0x6a)
@@ -146,7 +146,7 @@ def repack(data):
                         if fin.tell() >= filesize:
                             break
                         sjis = getTranslation(sections, filename, readShiftJIS(fin))
-                        if "msg_f_iteminst" in filename:
+                        if "msg_f_iteminst" in filename or "msg_f_jyutuinst" in filename:
                             writeShiftJIS(f, sjis, fixedmax)
                             fin.seek(i * fixedsize + 0x6a)
                             f.seek(fin.tell())
