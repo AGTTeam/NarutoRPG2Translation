@@ -75,6 +75,9 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
     
 
     def generateImage(self, lbl, speaker, text):
+        if text.startswith(">>"):
+            text = text.lstrip(">")
+            speaker = "narrator"
         if speaker == "narrator":
             img = self.bg1.copy()
             startx = 15

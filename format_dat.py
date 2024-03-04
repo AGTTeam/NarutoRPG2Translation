@@ -193,19 +193,23 @@ def repack(data):
                                 sjissplit[j] = getTranslation(sections, filename, sjissplit[j])
                                 maxlines = 2
                                 # Check if the string starts with a speaker
-                                checkspeaker = sjissplit[j]
-                                while checkspeaker[0] == "<":
-                                    speakercode = checkspeaker.split(">")[0][1:]
-                                    if speakercode != "narrator" and (speakercode in speakercodevalues or speakercode.replace("small_", "") in speakercodevalues):
-                                        usewordwrap = wordwrap2
-                                        break
-                                    else:
-                                        checkspeaker = checkspeaker[len(speakercode) + 2:]
-                                if "msgbattle/" in filename:
-                                    maxlines = 1
-                                    usewordwrap = wordwrapbattlemsg
-                                if "msg_staffroll" in filename:
-                                    maxlines = 999
+                                if sjissplit[j].startswith(">>"):
+                                    usewordwrap = wordwrap
+                                    sjissplit[j] = sjissplit[j].lstrip(">")
+                                else:
+                                    checkspeaker = sjissplit[j]
+                                    while checkspeaker[0] == "<":
+                                        speakercode = checkspeaker.split(">")[0][1:]
+                                        if speakercode != "narrator" and (speakercode in speakercodevalues or speakercode.replace("small_", "") in speakercodevalues):
+                                            usewordwrap = wordwrap2
+                                            break
+                                        else:
+                                            checkspeaker = checkspeaker[len(speakercode) + 2:]
+                                    if "msgbattle/" in filename:
+                                        maxlines = 1
+                                        usewordwrap = wordwrapbattlemsg
+                                    if "msg_staffroll" in filename:
+                                        maxlines = 999
                                 sjissplit[j] = common.wordwrap(sjissplit[j], glyphs, usewordwrap, detectTextCode, strip=False)
                                 if sjissplit[j].count("|") > maxlines - 1:
                                     common.logWarning("Line \"" + sjissplit[j] + "\"has too many line breaks, splitting...")
