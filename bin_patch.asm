@@ -205,8 +205,7 @@ print_list equ 0x02029104
   .pool
 
   VWF:
-  ;r0 = 0x11
-  ;r1 = 0x22
+  ;r0 = size multiplier (0x2 or 0x3)
   ;r2 = src address
   ;r3 = dst address
   ;r4 = palette data
@@ -217,6 +216,12 @@ print_list equ 0x02029104
   ldrb r6,[r5,VWF_DRAW_PREVIOUS]
   cmp r6,0x1
   subeq r3,r3,r11
+  ;Load the char length, but assume 0x8 if VWF_CLEAN is 1
+  ldrb r1,[r5,VWF_CLEAN]
+  cmp r1,0x1
+  ldrb r1,[r5,VWF_CHAR_LENGTH]
+  moveq r1,0x8
+  lsl r0,r1,r0
   ;Increase graphics ptr by the Character start / 2
   ldrb r5,[r5,VWF_CHAR_START]
   add r3,r3,r5,lsr 1
@@ -232,24 +237,33 @@ print_list equ 0x02029104
   addge r3,r3,r11
   subge r3,r3,0x4
   ;Get and store the actual pixel data
-  ldrb r8,[r2]
-  and r9,r8,r1
+  ldrb r8,[r2],0x1
+  and r9,r8,0x22
   mul r10,r9,r4
-  and r9,r8,r0
+  and r9,r8,0x11
   orr r9,r9,r10
   strb r9,[r3]
   ;Increase counters
-  add r2,r2,0x1
   add r7,r7,0x1
   add r12,r12,0x1
-  ;Increase r6 by 2, decrease by 8 if >= 8
+  ;Increase r6 by 2, check if >= r1 (8 for fullwidth characters)
   add r6,r6,0x2
-  cmp r6,0x8
-  subge r6,r6,0x8
+  cmp r6,r1
+  bge @@nextline
   ;Check if we need to loop more
-  cmp r7,r11
+  @@checkloop:
+  cmp r7,r0
   blt @@loop
   bx lr
+  @@nextline:
+  ;Decrease r6 by the char length
+  sub r6,r6,r1
+  ;Also need to add 0x4-r1/2 to r2 and r12 to advance the pointers
+  mov r8,0x4
+  sub r8,r8,r1,lsr 0x1
+  add r2,r2,r8
+  add r12,r12,r8
+  b @@checkloop
 
   VWF_END:
   push {r0-r2}
@@ -685,8 +699,7 @@ print_list equ 0x02029104
   ;Replace the glyph rendering
   .org 0x02025f3c
   .area 12*4
-  mov r0,0x11
-  mov r1,0x22
+  mov r0,0x3
   mov r2,r5
   push {r7-r12}
   mov r11,0x40
@@ -698,8 +711,7 @@ print_list equ 0x02029104
   ;Replace the small glyph rendering
   .org 0x02026008
   .area 12*4
-  mov r0,0x11
-  mov r1,0x22
+  mov r0,0x2
   mov r2,r6
   mov r3,r12
   push {r7-r12}

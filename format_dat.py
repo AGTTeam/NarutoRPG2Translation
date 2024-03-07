@@ -161,6 +161,8 @@ def repack(data):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapformation, detectTextCode, strip=False)
                             elif "msg_b_jyutuinst" in filename or ("msg_b_iteminst" in filename and i < 54):
                                 sjis = common.wordwrap(sjis, glyphs, wordwrapbattle, detectTextCode, strip=False)
+                            elif "msg_f_kumiteinst" in filename:
+                                sjis = common.wordwrap(sjis, glyphs, wordwrap, detectTextCode, strip=False)
                             writeShiftJIS(f, sjis, fixedmax)
                         i += 1
                 else:
@@ -284,8 +286,8 @@ fixedfiles = {
     "msg/msginst/msg_b_jyutuinst.dat": (0x6a, 0x34),
     "msg/msginst/msg_f_extraiteminst.dat": (0x6a, 0x5c),
     "msg/msginst/msg_f_iteminst.dat": (0xa0, 0x54),
-    "msg/msginst/msg_f_jyutuinst.dat": (0xa0, 0x35),
-    "msg/msginst/msg_f_kumiteinst.dat": (0x6a, 0x64),
+    "msg/msginst/msg_f_jyutuinst.dat": (0xa0, 0x34),
+    "msg/msginst/msg_f_kumiteinst.dat": (0x6a, 0x54),
     "msg/msginst/msg_fieldhelpinst.dat": (0x6a, 0x11),
     "msg/msgmenu/msg_menudougu.dat": (0x6a, 0x31),
     "msg/msgmenu/msg_menufield.dat": (0x16, 0x15),
@@ -295,7 +297,7 @@ fixedfiles = {
     "msg/msgmenu/msg_menusoubi.dat": (0x6a, 0x2d),
     "param/item_data.dat": (0xbc, 0x19),
     "param/jyutu_data.dat": (0x2c, 0x19),
-    "param/kumite_data.dat": (0x4c, 0x23),
+    "param/kumite_data.dat": (0x4c, 0x19),
     "param/mon_param.dat": (0xd4, 0x11),
 }
 
