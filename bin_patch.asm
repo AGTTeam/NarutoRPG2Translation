@@ -24,6 +24,8 @@ SHORTEN_VALUABLES_VALUE equ 17*8
 SHORTEN_JUTSU_USE_VALUE equ 11*8
 ;Max length for jutsu name in battle
 SHORTEN_BATTLE_JUTSU_LIST_VALUE equ 13*8
+;Max length for jutsu name in battle (additional shorter window)
+SHORTEN_ADDITIONAL_BATTLE_JUTSU_LIST_VALUE equ 12*8
 ;Max length for item name in battle
 SHORTEN_BATTLE_ITEM_LIST_VALUE equ 11*8
 
@@ -625,6 +627,8 @@ print_list equ 0x02029104
   wrap_print_list SHORTEN_STATUS_JUTSU_LIST_VALUE,SHORTEN_STATUS_JUTSU_LIST_RET,0
   SHORTEN_BATTLE_LIST:
   wrap_print_list SHORTEN_BATTLE_JUTSU_LIST_VALUE,SHORTEN_BATTLE_LIST_RET,1
+  SHORTEN_ADDITIONAL_BATTLE_LIST:
+  wrap_print_list SHORTEN_ADDITIONAL_BATTLE_JUTSU_LIST_VALUE,SHORTEN_ADDITIONAL_BATTLE_LIST_RET,0
 
   LOAD_STR_SPRINTF:
   ldr r1,=LOAD_STR
@@ -847,6 +851,10 @@ print_list equ 0x02029104
   .org 0x0202f114
   b SHORTEN_BATTLE_LIST
   SHORTEN_BATTLE_LIST_RET:
+  ;Shorten additional jutsu window in battle
+  .org 0x0202f21c
+  b SHORTEN_ADDITIONAL_BATTLE_LIST
+  SHORTEN_ADDITIONAL_BATTLE_LIST_RET:
   ;Wrap the print_string function called by print_list
   .org 0x020292b8
   bl SHORTEN_PRINT_LIST
