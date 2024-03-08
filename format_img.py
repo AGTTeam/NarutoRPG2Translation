@@ -119,6 +119,9 @@ def repack(data):
             elif cells is None:
                 common.copyFile(acgin + file, acgout + file)
                 common.copyFile(acgin + mapfile, acgout + mapfile)
+                if file in paltweaks:
+                    for paltweak in paltweaks[file]:
+                        nscr.maps[(paltweak[1] * (nscr.width // 8)) + paltweak[0]].pal = paltweak[2]
                 if "map/dj_001" in file or "map/dj_002" in file or "map/dj_004" in file:
                     nitro.writeNSCR(acgout + file, ncgr, nscr, workfolder + pngfile, palettes, usewidth, useheight)
                 else:
@@ -723,6 +726,37 @@ manualcells = {
 }
 
 
+# Manual palette tweaks that can be applid to hardcoded map files like the maps
+# The first 2 parameters are the x,y coordinates of the tile (/8)
+# The third parameter is the palette
+paltweaks = {
+    "map/mp_01a/mp_01a.acg": [
+        # Mission reception
+        # First row
+        (44, 102, 6),
+        (45, 102, 6),
+        (46, 102, 6),
+        (49, 102, 6),
+        # Second row
+        (44, 103, 6),
+        (45, 103, 6),
+        (46, 103, 6),
+        (49, 103, 6),
+        # Third row
+        (44, 104, 6),
+        (45, 104, 6),
+        (46, 104, 6),
+        (49, 104, 6),
+        # Fourth row
+        (44, 105, 6),
+        (45, 105, 6),
+        (46, 105, 6),
+        (49, 105, 6),
+    ]
+}
+
+
+# List of widths for the map files
 mapwidths = {
     "map/dj_000/dj_000.acg": 768,
     "map/dj_001/dj_001.acg": 768,
