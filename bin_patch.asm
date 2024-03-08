@@ -963,6 +963,40 @@ print_list equ 0x02029104
   ;mov r1,0x14
   mov r1,0x12
 
+  ;Move Kumite best record text right
+  .org 0x02064228
+  ;mov r1,0x78
+  mov r1,0x79
+  ;Move Kumite best record number left
+  .org 0x02064294
+  ;mov r0,0xe0
+  mov r0,0xd8
+  ;Move Kumite best record "Wins" left
+  .org 0x02064280
+  ;mov r1,0x9d
+  mov r1,0x9c
+
+  ;Move Kumite "New record achieved" text right
+  .org 0x020687b4
+  ;.dw 0x186
+  .dw 0x187
+  ;Move Kumite "New record achieved" number left
+  .org 0x0206876c
+  ;mov r0,0xe0
+  mov r0,0xd8
+  ;Move Kumite "New record achieved" "Wins" left
+  .org 0x020687bc
+  ;.dw 0x17d
+  .dw 0x17c
+
+  ;Swap battle number in Kumite battle
+  .org 0x02014e50
+  ;mov r1,0x26
+  mov r1,0x29
+  .org 0x02014e6c
+  ;mov r1,0x2a
+  mov r1,0x26
+
   ;Make the summoning sheet box bigger
   .org 0x02079500
   ;strb r2,r0[0x0]
