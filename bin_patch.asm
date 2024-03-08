@@ -978,6 +978,24 @@ print_list equ 0x02029104
   ;mov r1,0xd
   mov r1,0xf
 
+  ;Tweak Members screen
+  ;Move the window left
+  .org 0x0208eb28
+  ;db 0x11
+  db 0xe
+  ;Make it bigger
+  .org 0x02057e9c
+  ;mov r3,0xe
+  mov r3,0x12
+  ;Move the arrow right
+  .org 0x02057f00
+  ;add r1,r1,0x6
+  add r1,r1,0x8
+  ;Move the second name right
+  .org 0x02057f34
+  ;add r0,r3,0x8
+  add r0,r3,0xa
+
   ;Move money left 1 tile
   .org 0x0203bbf8
   ;mov r1,0x12
