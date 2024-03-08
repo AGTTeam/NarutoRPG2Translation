@@ -895,6 +895,7 @@ print_list equ 0x02029104
   ;If r4 is 0, this is just a normal strcpy and we can return
   cmp r4,0x0
   bleq strcpy
+  cmp r4,0x0
   popeq {r4,lr}
   bxeq lr
   ;Otherwise, r0 is a pointer to the buffer, r1 is the character name and r4 is the "Revive" line
