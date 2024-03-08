@@ -28,6 +28,8 @@ SHORTEN_BATTLE_JUTSU_LIST_VALUE equ 13*8
 SHORTEN_BATTLE_ITEM_LIST_VALUE equ 11*8
 
 sprintf equ 0x02001094
+strcpy equ 0x020033cc
+strcat equ 0x02003328
 print_string equ 0x020265c0
 print_list equ 0x02029104
 
@@ -81,6 +83,12 @@ print_list equ 0x02029104
   EQUIP_SELECT_STR:
   ;0x0208f0bc "　をだれにそうびしますか？|カーソルでえらんでください$$"
   .ascii "Who will equip %c%c%s%s?" :: .db 0x0a :: .ascii "Use the cursor to select." :: .db 0x03 :: .db 0x01 :: .db 0x00
+  CHEMISTRY_UP_STR:
+  ;0x0208d940 "とのあいしょうがあがった！"
+  .asciiz "Chemistry with %s has gone up!"
+  CHEMISTRY_DOWN_STR:
+  ;0x0208d940 "とのあいしょうがさがった！"
+  .asciiz "Chemistry with %s has gone down!"
   .align
 
   VWF_DATA_SIZE equ 12
@@ -870,6 +878,36 @@ print_list equ 0x02029104
   .org 0x0205cfdc
   b EQUIP_STR_SPRINTF
   EQUIP_STR_SPRINTF_RET:
+
+  ;Change chemistry string pointers
+  .org 0x0208d8fc
+  dw CHEMISTRY_UP_STR
+  dw CHEMISTRY_DOWN_STR
+  ;and the sprintf order/parameters
+  .org 0x020383e4
+  ldr r1,[r1,r3,lsl 0x2]
+  .skip 4
+  nop
+
+  ;Swap "[name]　をふっかつさせます" with "Revive [name]"
+  .org 0x0202cdec
+  .area 12*4
+  ;If r4 is 0, this is just a normal strcpy and we can return
+  cmp r4,0x0
+  bleq strcpy
+  popeq {r4,lr}
+  bxeq lr
+  ;Otherwise, r0 is a pointer to the buffer, r1 is the character name and r4 is the "Revive" line
+  ;Normally the game does a strcat of Name+Japanese space, and then another strcat of the result + Revive
+  ;In English we just need "Revive name" so we can just do a single strcat after copying revive to the buffer
+  push {r0,r1}
+  mov r1,r4
+  bl strcpy
+  pop {r0,r1}
+  bl strcat
+  pop {r4,lr}
+  bx lr
+  .endarea
 
   ;Use a different strlen function for spacing some strings
   .org 0x02029274
