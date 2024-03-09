@@ -426,7 +426,7 @@ print_list equ 0x02029104
 
   ;Move back to the normal VWF data
   VWF_DIALOG_END:
-  push {r0-r1}
+  push {r0-r2}
   ldr r0,=VWF_DATA
   add r1,r0,0x4 + VWF_DATA_SIZE
   mov r2,0x0
@@ -434,7 +434,7 @@ print_list equ 0x02029104
   ldr r0,=VWF_DATA
   add r1,r0,0x4
   str r1,[r0]
-  pop {r0-r1}
+  pop {r0-r2}
   add sp,sp,0x4
   bx lr
   .pool
