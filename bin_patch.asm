@@ -431,7 +431,6 @@ print_list equ 0x02029104
   add r1,r0,0x4 + VWF_DATA_SIZE
   mov r2,0x0
   strb r2,[r1,VWF_DRAW_FULL]
-  ldr r0,=VWF_DATA
   add r1,r0,0x4
   str r1,[r0]
   pop {r0-r2}
