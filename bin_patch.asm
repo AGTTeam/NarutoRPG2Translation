@@ -676,6 +676,21 @@ print_list equ 0x02029104
   mov r1,0xc
   b KUMITE_SIZE_RET
 
+  HOT_SPRINGS_SIZE:
+  ldr r0,=0x2cb
+  b HOT_SPRINGS_SIZE_RET
+  .pool
+
+  HOT_SPRINGS_START_SIZE:
+  str r1,[sp]
+  mov r1,0x2
+  b HOT_SPRINGS_START_SIZE_RET
+
+  HOT_SPRINGS_START_SIZE2:
+  sub r1,r1,0x2
+  mov r0,0x1
+  b HOT_SPRINGS_START_SIZE2_RET
+
   SUMMONING_SHEET_SIZE:
   mov r2,0xf
   strb r2,[r0,0x0]
@@ -960,6 +975,91 @@ print_list equ 0x02029104
   .org 0x0203b824
   ;mov r3,0xe
   mov r3,0x10
+
+  ;Make the hot springs menu box bigger
+  .org 0x020793bc
+  ;mov r2,0x9
+  mov r2,0xb
+  ;Move the hot springs menu box left
+  .org 0x0200b218
+  ;mov r1,0x16
+  mov r1,0x14
+
+  ;Move the hot springs box left and make it bigger
+  .org 0x02062f2c
+  ;mov r1,0xe
+  mov r1,0xd
+  .skip 4
+  ;mov r3,0x11
+  mov r3,0x13
+  ;Move the left and right arrows
+  .org 0x0206302c
+  ;mov r0,0xe
+  mov r0,0xd
+  .skip 4*4
+  ;mov r0,0x1d
+  mov r0,0x1e
+  ;Move the character names columns
+  .org 0x02062fc0
+  ;mov r1,0x7
+  mov r1,0x8
+  .org 0x02062fd8
+  ;add r1,r1,0x11
+  add r1,r1,0xf
+  ;Move the character arrows
+  .org 0x02062e98
+  ;mov r0,0x38
+  mov r0,0x40
+  .org 0x02062eb4
+  ;add r1,r2,0x78
+  add r1,r2,0x6b
+  ;Move the "List" background left
+  .org 0x02063070
+  ;mov r1,0x8
+  mov r1,0x7
+  ;Move the "List" text left
+  .org 0x0206313c
+  ;.dw 0x2a9
+  .dw 0x2a8
+  ;Move the numbers
+  .org 0x0206314c
+  ;.dw 0x2ca
+  .dw 0x2c9
+  ;.dw 0x2cb
+  .dw 0x2ca
+  .org 0x02063100
+  ;mov r0,0x2cc
+  b HOT_SPRINGS_SIZE
+  HOT_SPRINGS_SIZE_RET:
+  ;Move press start bg left
+  .org 0x02062c28
+  b HOT_SPRINGS_START_SIZE
+  HOT_SPRINGS_START_SIZE_RET:
+  .org 0x02062c3c
+  ;mov r3,0xa
+  mov r3,0xb
+  ;Move the text left
+  .org 0x02062c68
+  ;mov r1,0x1
+  b HOT_SPRINGS_START_SIZE2
+  HOT_SPRINGS_START_SIZE2_RET:
+  
+  ;Move the "木ノ葉おんせん" text left
+  .org 0x02062aa8
+  ;mov r1,0x83
+  mov r1,0x81
+  ;Move the character names left
+  .org 0x02062a18
+  ;add r1,r7,0x1
+  mov r1,r7
+
+  ;Move the "火影はおまえだ" text left
+  .org 0x020625f8
+  ;mov r1,r1,lsl 0x10
+  sub r1,r1,0x4
+  .skip 8
+  ;mov r1,r1,lsr,0x10
+  nop
 
   ;Make the kumite box bigger
   .org 0x0207983c
