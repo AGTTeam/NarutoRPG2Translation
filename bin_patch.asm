@@ -114,9 +114,10 @@ print_list equ 0x02029104
   ;1 if we're drawing ASCII
   VWF_IS_ASCII equ 5
   .db 0
-  VWF_PLACEHOLDER equ 6
+  ;1 if we should draw the full character
+  VWF_DRAW_FULL equ 6
   .db 0
-  VWF_PLACEHOLDER2 equ 7
+  VWF_PLACEHOLDER equ 7
   .db 0
   VWF_CHAR equ 8
   .dw 0
@@ -226,10 +227,13 @@ print_list equ 0x02029104
   ldrb r6,[r5,VWF_DRAW_PREVIOUS]
   cmp r6,0x1
   subeq r3,r3,r11
-  ;Load the char length, but assume 0x8 if VWF_CLEAN is 1
-  ldrb r1,[r5,VWF_CLEAN]
-  cmp r1,0x1
+  ;Load the char length or set to 0x8 if VWF_CLEAN or VWF_DRAW_FULL are 1
   ldrb r1,[r5,VWF_CHAR_LENGTH]
+  ldrb r7,[r5,VWF_CLEAN]
+  cmp r7,0x1
+  moveq r1,0x8
+  ldrb r7,[r5,VWF_DRAW_FULL]
+  cmp r7,0x1
   moveq r1,0x8
   lsl r0,r1,r0
   ;Increase graphics ptr by the Character start / 2
@@ -414,6 +418,8 @@ print_list equ 0x02029104
   ldr r0,=VWF_DATA
   add r1,r0,0x4 + VWF_DATA_SIZE
   str r1,[r0]
+  mov r0,0x1
+  strb r0,[r1,VWF_DRAW_FULL]
   pop {r0-r1}
   mov r4,0x4000
   bx lr
@@ -421,6 +427,10 @@ print_list equ 0x02029104
   ;Move back to the normal VWF data
   VWF_DIALOG_END:
   push {r0-r1}
+  ldr r0,=VWF_DATA
+  add r1,r0,0x4 + VWF_DATA_SIZE
+  mov r2,0x0
+  strb r2,[r1,VWF_DRAW_FULL]
   ldr r0,=VWF_DATA
   add r1,r0,0x4
   str r1,[r0]
