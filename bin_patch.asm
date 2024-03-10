@@ -438,6 +438,14 @@ print_list equ 0x02029104
   bx lr
   .pool
 
+  ;Set VWF_CLEAN as 1 when a dialogue line is prepared
+  VWF_DIALOG_PREPARE:
+  load_vwf_data r0
+  mov r5,0x1
+  strb r5,[r0,VWF_CLEAN]
+  mov r0,0x2
+  bx lr
+
   ;Strlen function that works with VWF
   STRLEN_VWF:
   push {r3-r4}
@@ -788,6 +796,10 @@ print_list equ 0x02029104
   bl VWF_DIALOG_BEGIN
   .org 0x02026d2c
   bl VWF_DIALOG_END
+
+  ;Hook before a dialog line is prepared to clean VWF
+  .org 0x02028838
+  bl VWF_DIALOG_PREPARE
 
   ;Don't check for line length limits
   .org 0x020278c4
