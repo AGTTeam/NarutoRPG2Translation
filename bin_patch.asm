@@ -91,6 +91,8 @@ print_list equ 0x02029104
   CHEMISTRY_DOWN_STR:
   ;0x0208d940 "とのあいしょうがさがった！"
   .asciiz "Chemistry with %s has gone down!"
+  GAINED_SPRINTF_STR:
+  .asciiz "%s%s%s"
   .align
 
   VWF_DATA_SIZE equ 12
@@ -660,6 +662,14 @@ print_list equ 0x02029104
   OVERWRITE_STR_SPRINTF:
   ldr r1,=OVERWRITE_STR
   b OVERWRITE_STR_SPRINTF_RET
+  GAINED_SPRINTF:
+  mov r2,r3
+  ldr r3,[r13]
+  ldr r1,[r13,0x4]
+  str r1,[r13]
+  ldr r1,=GAINED_SPRINTF_STR
+  b sprintf
+  .pool
 
   ;For these 2 strings we need to check an address, it's 0 for buying or 1 for selling
   BUY_STR_SPRINTF:
@@ -1197,6 +1207,10 @@ print_list equ 0x02029104
   ;Shorten reward item names
   .org 0x0206912c
   bl SHORTEN_ITEM_NAME_REWARD
+
+  ;Remove character name from "[name] gained [skill]!" text
+  .org 0x020698bc
+  bl GAINED_SPRINTF
 
   ;Move Searching for a partner wifi text left
   .org 0x0203fca4
