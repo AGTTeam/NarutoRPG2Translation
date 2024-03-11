@@ -94,7 +94,10 @@ def extract(data):
                             if subsjis.endswith("|"):
                                 subsjis = subsjis[:-1]
                             if subsjis != "":
-                                out.write(subsjis + "=\n")
+                                if "msg_staffroll" in file:
+                                    out.write(subsjis + "\n")
+                                else:
+                                    out.write(subsjis + "=\n")
     common.logMessage("Done!")
 
 
@@ -113,6 +116,7 @@ def repack(data):
     speakercodevalues = speakercodes.values()
     common.logMessage("Repacking DAT from", infolder, "...")
     glyphs = readFontGlyphs(fontconfig)
+    allstaffroll = []
     for file in common.getFiles(infolder):
         if os.path.isfile(file.replace("/", "/[COMPLETE]")) or os.path.isfile(file.replace("/", "/[TEST]")):
             continue
@@ -121,9 +125,13 @@ def repack(data):
         if "#" in filename:
             filename = filename.split("#")[0] + ".dat"
         with codecs.open(infolder + file, "r", "utf-8") as input:
-            section = common.getSection(input, "")
-            chartot, transtot = common.getSectionPercentage(section, chartot, transtot)
-            sections[filename] = section
+            if "msg_staffroll" in filename:
+                for line in input:
+                    allstaffroll.append(line.rstrip("\r\n").replace("\ufeff", ""))
+            else:
+                section = common.getSection(input, "")
+                chartot, transtot = common.getSectionPercentage(section, chartot, transtot)
+                sections[filename] = section
     common.makeFolder(datout)
     for file in common.showProgress(common.getFiles(datin)):
         filesize = os.path.getsize(datin + file)
@@ -192,7 +200,10 @@ def repack(data):
                                 sjissplit[j] = sjissplit[j][:-1]
                                 add3 = True
                             if sjissplit[j] != "":
-                                sjissplit[j] = getTranslation(sections, filename, sjissplit[j])
+                                if "msg_staffroll" in filename:
+                                    sjissplit[j] = allstaffroll.pop(0).split("#")[0]
+                                else:
+                                    sjissplit[j] = getTranslation(sections, filename, sjissplit[j])
                                 maxlines = 2
                                 # Check if the string starts with a speaker
                                 if sjissplit[j].startswith(">>"):
@@ -200,13 +211,14 @@ def repack(data):
                                     sjissplit[j] = sjissplit[j].lstrip(">")
                                 else:
                                     checkspeaker = sjissplit[j]
-                                    while checkspeaker[0] == "<":
-                                        speakercode = checkspeaker.split(">")[0][1:]
-                                        if speakercode != "narrator" and (speakercode in speakercodevalues or speakercode.replace("small_", "") in speakercodevalues):
-                                            usewordwrap = wordwrap2
-                                            break
-                                        else:
-                                            checkspeaker = checkspeaker[len(speakercode) + 2:]
+                                    if checkspeaker != "":
+                                        while checkspeaker[0] == "<":
+                                            speakercode = checkspeaker.split(">")[0][1:]
+                                            if speakercode != "narrator" and (speakercode in speakercodevalues or speakercode.replace("small_", "") in speakercodevalues):
+                                                usewordwrap = wordwrap2
+                                                break
+                                            else:
+                                                checkspeaker = checkspeaker[len(speakercode) + 2:]
                                     if "msgbattle/" in filename:
                                         maxlines = 1
                                         usewordwrap = wordwrapbattlemsg
