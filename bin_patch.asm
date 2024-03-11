@@ -18,6 +18,8 @@ SHORTEN_STATUS_EQUIP_VALUE equ 11*8
 SHORTEN_STATUS_JUTSU_LIST_VALUE equ 13*8
 ;Max length for shop windows (same for all 4 equip/item shop)
 SHORTEN_SHOP_VALUE equ 13*8
+;Max length for window after Who will equip x
+SHORTEN_WHO_WILL_EQUIP_VALUE equ 11*8
 ;Max length for valuables window
 SHORTEN_VALUABLES_VALUE equ 17*8
 ;Max length for jutsu name in Jutsu menu when using one
@@ -574,6 +576,8 @@ print_list equ 0x02029104
   shorten SHORTEN_STATUS_EQUIP_VALUE
   SHORTEN_JUTSU_USE:
   shorten SHORTEN_JUTSU_USE_VALUE
+  SHORTEN_WHO_WILL_EQUIP:
+  shorten SHORTEN_WHO_WILL_EQUIP_VALUE
 
   .macro shorten_list,reg,max
   push {r0-r3,lr}
@@ -671,6 +675,17 @@ print_list equ 0x02029104
   b sprintf
   .pool
 
+  .macro get_long_item_name
+  push {r0-r2}
+  ldr r0,=0x0205d170
+  ldr r0,[r0]
+  ldr r0,[r0]
+  ;Calling this function with that memory address we can retrieve the original long name
+  bl 0x0203dd2c
+  str r0,[r13,0xc]
+  pop {r0-r2}
+  .endmacro
+
   ;For these 2 strings we need to check an address, it's 0 for buying or 1 for selling
   BUY_STR_SPRINTF:
   ldr r1,=0x0221026c
@@ -680,7 +695,9 @@ print_list equ 0x02029104
   beq @@ret
   ldr r1,=SELL_STR
   @@ret:
+  get_long_item_name
   b BUY_STR_SPRINTF_RET
+
   BUY_CONFIRM_STR_SPRINTF:
   ldr r1,=0x0221026c
   ldr r1,[r1]
@@ -689,13 +706,19 @@ print_list equ 0x02029104
   beq @@ret
   ldr r1,=SELL_CONFIRM_STR
   @@ret:
+  get_long_item_name
   b BUY_CONFIRM_STR_SPRINTF_RET
+
   EQUIP_CONFIRM_STR_SPRINTF:
   ldr r1,=EQUIP_CONFIRM_STR
+  get_long_item_name
   b EQUIP_CONFIRM_STR_SPRINTF_RET
+
   EQUIP_SELECT_STR_SPRINTF:
   ldr r1,=EQUIP_SELECT_STR
+  get_long_item_name
   b EQUIP_SELECT_STR_SPRINTF_RET
+
   EQUIP_STR_SPRINTF:
   ldr r1,=EQUIP_STR
   b EQUIP_STR_SPRINTF_RET
@@ -891,6 +914,9 @@ print_list equ 0x02029104
   ;Shorten shop windows (same for all 4 equip/item shop)
   .org 0x0205c2b0
   bl SHORTEN_SHOP
+  ;Shorten equip name in window after "Who will equip x" after purchasing
+  .org 0x0205b8b4
+  bl SHORTEN_WHO_WILL_EQUIP
   ;Shorten valuables window
   .org 0x020389ac
   bl SHORTEN_VALUABLES
