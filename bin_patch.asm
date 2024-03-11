@@ -95,6 +95,9 @@ print_list equ 0x02029104
   .asciiz "Chemistry with %s has gone down!"
   GAINED_SPRINTF_STR:
   .asciiz "%s%s%s"
+
+  UNLOCK_STR:
+  .db 0x10 :: .db 0x22 :: .asciiz "You can play"
   .align
 
   VWF_DATA_SIZE equ 12
@@ -442,8 +445,8 @@ print_list equ 0x02029104
   bx lr
   .pool
 
-  ;Set VWF_CLEAN as 1 when a dialogue line is prepared
   VWF_DIALOG_PREPARE:
+  ;Set VWF_CLEAN as 1 when a dialogue line is prepared
   ldr r0,=VWF_DATA
   add r0,r0,4+VWF_DATA_SIZE
   mov r5,0x0
@@ -451,6 +454,60 @@ print_list equ 0x02029104
   str r5,[r0,0x4]
   str r5,[r0,0x8]
   mov r0,0x2
+  bx lr
+  .pool
+
+  VWF_DIALOG_CHECK:
+  ;Check if we're matching a specific line
+  push {r1-r4,lr}
+  ldr r0,=UNLOCK_STR
+  @@loop:
+  ldrb r1,[r0],0x1
+  cmp r1,0x00
+  beq @@found
+  ldrb r2,[r4],0x1
+  cmp r1,r2
+  bne @return
+  b @@loop
+  @@found:
+  bl CHECK_UNLOCK_WIFI
+  @return:
+  pop {r1-r4,lr}
+  mov r0,r6
+  bx lr
+  .pool
+
+  CHECK_UNLOCK_WIFI:
+  ;Check if kakashi is available
+  ldr r0,=0x02099a50
+  ldrb r0,[r0]
+  and r1,r0,0x1
+  cmp r1,0x1
+  beq @@check_jiraiya
+  ;Check if kakashi tag is available
+  ldr r0,=0x02099981
+  ldrb r1,[r0]
+  cmp r1,0x0
+  bgt @@check_jiraiya
+  ;Add 1 tag
+  mov r1,0x1
+  strb r1,[r0]
+  @@check_jiraiya:
+  ;Check if jiraiya is available
+  ldr r0,=0x02099a4f
+  ldrb r0,[r0]
+  and r1,r0,0x20
+  cmp r1,0x20
+  beq @@return
+  ;Check if jiraiya tag is available
+  ldr r0,=0x0209997e
+  ldrb r1,[r0]
+  cmp r1,0x0
+  bgt @@return
+  ;Add 1 tag
+  mov r1,0x1
+  strb r1,[r0]
+  @@return:
   bx lr
   .pool
 
@@ -837,6 +894,10 @@ print_list equ 0x02029104
   ;Hook before a dialog line is prepared to clean VWF
   .org 0x02028838
   bl VWF_DIALOG_PREPARE
+
+  ;Hook when a dialog line is prepared for printing to check it
+  .org 0x02026440
+  bl VWF_DIALOG_CHECK
 
   ;Don't check for line length limits
   .org 0x020278c4
