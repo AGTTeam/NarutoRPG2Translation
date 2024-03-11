@@ -440,11 +440,15 @@ print_list equ 0x02029104
 
   ;Set VWF_CLEAN as 1 when a dialogue line is prepared
   VWF_DIALOG_PREPARE:
-  load_vwf_data r0
-  mov r5,0x1
-  strb r5,[r0,VWF_CLEAN]
+  ldr r0,=VWF_DATA
+  add r0,r0,4+VWF_DATA_SIZE
+  mov r5,0x0
+  str r5,[r0]
+  str r5,[r0,0x4]
+  str r5,[r0,0x8]
   mov r0,0x2
   bx lr
+  .pool
 
   ;Strlen function that works with VWF
   STRLEN_VWF:
