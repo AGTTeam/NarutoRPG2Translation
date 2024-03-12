@@ -654,6 +654,9 @@ print_list equ 0x02029104
   SHORTEN_SHOP:
   str r8,[r10,0x4]
   shorten_list r8,SHORTEN_SHOP_VALUE
+  SHORTEN_WIFI_TRADE:
+  str r7,[r9,0x4]
+  shorten_list r7,SHORTEN_SHOP_VALUE
   ;This function is called for every item, not just valuables
   ;If [r5,0x30] is != 0, the item is a valuable
   SHORTEN_VALUABLES:
@@ -978,6 +981,9 @@ print_list equ 0x02029104
   ;Shorten shop windows (same for all 4 equip/item shop)
   .org 0x0205c2b0
   bl SHORTEN_SHOP
+  ;Shorten wifi trade window
+  .org 0x0203ee64
+  bl SHORTEN_WIFI_TRADE
   ;Shorten equip name in window after "Who will equip x" after purchasing
   .org 0x0205b8b4
   bl SHORTEN_WHO_WILL_EQUIP
