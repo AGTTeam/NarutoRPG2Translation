@@ -1306,6 +1306,10 @@ print_list equ 0x02029104
   .org 0x0203fca4
   ;mov r0,0xa
   mov r0,0x7
+  ;Move opponent accepted wifi text left
+  .org 0x0204109c
+  ;mov r0,0xb
+  mov r0,0x7
   .org 0x0203ff2c
   mov r0,0x7
 .close
