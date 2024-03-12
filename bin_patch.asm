@@ -400,8 +400,11 @@ print_list equ 0x02029104
   ;Cleanup on item symbol
   cmp r1,0x13
   beq @@cleanup
-  ;For waits, check the next character
+  ;For waits and sounds, check the next character
   cmp r1,0x5
+  addeq r0,r0,0x2
+  beq @@checkagain
+  cmp r1,0x6
   addeq r0,r0,0x2
   beq @@checkagain
   ;For colors, we need to check the next character as well since it might be at the end of a line
