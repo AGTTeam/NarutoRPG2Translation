@@ -814,6 +814,29 @@ print_list equ 0x02029104
   mov r2,0xc
   b SUMMONING_SHEET_SIZE_RET
 
+  SWAP_HEADER_IMG:
+  cmp r2,0xd
+  bne @@return
+  mov r12,r3
+  ;Swap Status (4) with Weapon (7)
+  cmp r12,0x4
+  moveq r3,0x7
+  cmp r12,0x7
+  moveq r3,0x4
+  ;Swap Formation (5) with Reward (c)
+  cmp r12,0x5
+  moveq r3,0xc
+  cmp r12,0xc
+  moveq r3,0x5
+  ;Swap Hot Springs (a) unused header (d)
+  cmp r12,0xa
+  moveq r3,0xd
+  cmp r12,0xd
+  moveq r3,0xa
+  @@return:
+  mov r12,0x0
+  bx lr
+
   MOVE_RYO_RIGHT:
   mov r3,0
   add r0,r0,2
@@ -1324,6 +1347,10 @@ print_list equ 0x02029104
   .org 0x02068c60
   ;add r0,r4,0x1b
   add r0,r4,0x1a
+
+  ;Swap header images
+  .org 0x02036694
+  bl SWAP_HEADER_IMG
 
   ;Move Searching for a partner wifi text left
   .org 0x0203fca4
