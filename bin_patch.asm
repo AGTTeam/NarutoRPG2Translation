@@ -1308,6 +1308,23 @@ print_list equ 0x02029104
   .org 0x020698bc
   bl GAINED_SPRINTF
 
+  ;Fix levelup stats when stats are >99
+  ;Make the numbers bigger
+  .org 0x02068c14
+  ;ldr r2,[r13,0x14]
+  mov r2,0x4
+  .org 0x02068c24
+  ;ldr r2,[r13,0x14]
+  mov r2,0x4
+  ;Move everything left
+  .org 0x02068c44
+  ;add r1,r4,0x18
+  add r1,r4,0x16
+  ;Move the arrow further left
+  .org 0x02068c60
+  ;add r0,r4,0x1b
+  add r0,r4,0x1a
+
   ;Move Searching for a partner wifi text left
   .org 0x0203fca4
   ;mov r0,0xa
