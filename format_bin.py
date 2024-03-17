@@ -35,7 +35,7 @@ def extract(data):
     common.logMessage("Done!")
 
 
-def repack(data):
+def repack(data, jp=False):
     binin = data + "extract/arm9.bin"
     headerin = data + "extract/header.bin"
     headerout = data + "repack/header.bin"
@@ -44,14 +44,17 @@ def repack(data):
 
     injectaddr = 0x01ff9000
     nds.expandBIN(binin, binout, headerin, headerout, 0x2000, injectaddr)
-    for post in ["", "small"]:
-        with codecs.open(data + "fontconfig" + post + ".txt", "r", "utf-8") as f:
-            section = common.getSection(f, "", inorder=True)
-            with common.Stream(data + "fontdata" + post + ".bin", "wb") as f:
-                for c in section:
-                    f.write(c["name"].replace("～", "〜").encode("shift_jis"))
-                    f.writeUShort(int(c["value"]))
-                f.writeUShort(0)
-                f.writeUShort(8)
-    nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=injectaddr - 0x92fc0, nocopy=True)
-    common.armipsPatch(common.bundledFile("bin_patch.asm"))
+    if not jp:
+        for post in ["", "small"]:
+            with codecs.open(data + "fontconfig" + post + ".txt", "r", "utf-8") as f:
+                section = common.getSection(f, "", inorder=True)
+                with common.Stream(data + "fontdata" + post + ".bin", "wb") as f:
+                    for c in section:
+                        f.write(c["name"].replace("～", "〜").encode("shift_jis"))
+                        f.writeUShort(int(c["value"]))
+                    f.writeUShort(0)
+                    f.writeUShort(8)
+        nds.repackBIN(binrange, freeranges, format_dat.readShiftJISBIN, format_dat.writeShiftJISBIN, "shift_jis", "#", binin, binout, binfile, injectstart=injectaddr - 0x92fc0, nocopy=True)
+        common.armipsPatch(common.bundledFile("bin_patch.asm"))
+    else:
+        common.armipsPatch(common.bundledFile("bin_patch_jp.asm"))

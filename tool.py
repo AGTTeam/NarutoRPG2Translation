@@ -23,10 +23,13 @@ outfolder = data + "repack/"
 @click.option("--dat", is_flag=True, default=False)
 @click.option("--img", is_flag=True, default=False)
 @click.option("--en", default=0, hidden=True)
-def extract(rom, bin, dat, img, en):
+@click.option("--jp", is_flag=True, hidden=True)
+def extract(rom, bin, dat, img, en, jp):
     datafolder = data
     if en > 0:
         datafolder = datafolder.replace("Data/", "en" + str(en) + "/")
+    elif jp:
+        datafolder = datafolder.replace("Data/", "jp/")
     all = not rom and not bin and not dat and not img
     if all or rom:
         nds.extractRom(romfile.replace(data, datafolder), infolder.replace(data, datafolder), outfolder.replace(data, datafolder) if en == 0 else "")
@@ -39,6 +42,14 @@ def extract(rom, bin, dat, img, en):
     if all or img:
         import format_img
         format_img.extract(datafolder)
+
+
+@common.cli.command()
+def repackjp():
+    datafolder = data.replace("Data/", "jp/")
+    import format_bin
+    format_bin.repack(datafolder, True)
+    nds.repackRom(romfile, rompatch.replace(data, datafolder), outfolder.replace(data, datafolder), patchfile.replace(data, datafolder))
 
 
 @common.cli.command()
