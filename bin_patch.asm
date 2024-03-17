@@ -872,6 +872,11 @@ print_list equ 0x02029104
   moveq r3,0xc
   cmp r12,0xc
   moveq r3,0x5
+  ;Swap Hot Springs (a) with VS Mode (e)
+  cmp r12,0xa
+  moveq r3,0xe
+  cmp r12,0xe
+  moveq r3,0xa
   @@return:
   mov r12,0x0
   bx lr
