@@ -40,10 +40,10 @@ class EditorFrame(customtkinter.CTkScrollableFrame):
         fontoutput = "NarutoRPG2Data/font_input.txt"
         fontconfig = "NarutoRPG2Data/fontconfig.txt"
 
-        self.bg1 = Image.open("editor1.png")
-        self.bg1 = self.bg1.convert("RGBA")
-        self.bg2 = Image.open("editor2.png")
-        self.bg2 = self.bg2.convert("RGBA")
+        bg = Image.open("editor.png")
+        bg = bg.convert("RGBA")
+        self.bg1 = bg.crop((0, 55, 256, 110))
+        self.bg2 = bg.crop((0, 0, 256, 55))
 
         with codecs.open(fontoutput, "r", "utf-8") as input:
             section = common.getSection(input, "", inorder=True)
