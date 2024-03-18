@@ -477,8 +477,15 @@ print_list equ 0x02029104
   bx lr
 
   VWF_DIALOG_CHECK:
-  ;Check if we're matching a specific line
   push {r1-r4,lr}
+  ;Clean up VWF here as well
+  ldr r0,=VWF_DATA
+  add r0,r0,4+VWF_DATA_SIZE
+  mov r3,0x0
+  str r3,[r0]
+  str r3,[r0,0x4]
+  str r3,[r0,0x8]
+  ;Check if we're matching a specific line
   mov r3,r4
   ldr r0,=UNLOCK_STR
   bl DIALOG_CHECK_STRCMP
