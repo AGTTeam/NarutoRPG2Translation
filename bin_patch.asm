@@ -534,7 +534,7 @@ print_list equ 0x02029104
   @@return:
   bx lr
 
-  .macro unlock_gift,char_addr,char_mask1,char_mask2,gift_addr,flag_addr,flag_mask,jump
+  .macro unlock_gift,char_addr,char_mask1,char_mask2,tag_addr1,tag_addr2,gift_addr,flag_addr,flag_mask,jump
   ;Check if only one of the characters is unlocked
   ldr r0,=char_addr
   ldrb r0,[r0]
@@ -551,6 +551,14 @@ print_list equ 0x02029104
   ldrb r1,[r0]
   cmp r1,0x0
   bgt jump
+  ;Check that we don't already have both tags
+  ldr r0,=tag_addr1
+  ldrb r1,[r0]
+  ldr r0,=tag_addr2
+  ldrb r2,[r0]
+  and r1,r1,r2
+  cmp r1,0x1
+  beq jump
   ;Add 1 gift and reset the flag
   mov r1,0x1
   strb r1,[r0]
@@ -562,9 +570,9 @@ print_list equ 0x02029104
   .endmacro
 
   CHECK_UNLOCK_GIFT:
-  unlock_gift 0x02099a50,0x2,0x8,0x020999ae,0x02099a40,0xbf,@@check_shino_tenten
+  unlock_gift 0x02099a50,0x2,0x8,0x02099982,0x02099984,0x020999ae,0x02099a40,0xbf,@@check_shino_tenten
   @@check_shino_tenten:
-  unlock_gift 0x02099a50,0x4,0x10,0x020999af,0x02099a41,0xfd,@@return
+  unlock_gift 0x02099a50,0x4,0x10,0x02099983,0x02099985,0x020999af,0x02099a41,0xfd,@@return
   @@return:
   bx lr
   .pool
