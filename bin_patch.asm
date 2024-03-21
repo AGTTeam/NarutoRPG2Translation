@@ -126,7 +126,8 @@ print_list equ 0x02029104
   ;1 if we should draw the full character
   VWF_DRAW_FULL equ 6
   .db 0
-  VWF_PLACEHOLDER equ 7
+  ;1 if the background is 0x0 instead of 0x11111111
+  VWF_BG_TYPE equ 7
   .db 0
   VWF_CHAR equ 8
   .dw 0
@@ -352,12 +353,15 @@ print_list equ 0x02029104
   bne noret
   mov r1,0x0
   strb r1,[r0,VWF_DO_INCREASE]
+  ldrb r1,[r0,VWF_BG_TYPE]
   ldr r0,[reg,r9]
-  ;Fill the new glyph with 0x11
+  ;Fill the new glyph with 0x11 (or 0x0 depending on VWF_BG_TYPE)
   push {r0-r2}
   add r0,r0,amount
+  mov r2,0x0
+  cmp r1,0x0
+  ldreq r2,=0x11111111
   mov r1,0x0
-  ldr r2,=0x11111111
   @@loop:
   str r2,[r0]
   add r0,r0,0x4
@@ -902,6 +906,21 @@ print_list equ 0x02029104
   pop {r4,lr}
   bx lr
   .pool
+
+  PRINT_PARTY_WRAPPER:
+  push {r0-r1,lr}
+  push {r0-r1}
+  load_vwf_data r0
+  mov r1,0x1
+  strb r1,[r0,VWF_BG_TYPE]
+  pop {r0-r1}
+  bl print_string
+  load_vwf_data r0
+  mov r1,0x0
+  strb r1,[r0,VWF_BG_TYPE]
+  pop {r0-r1,lr}
+  bx lr
+  .pool
   .endarea
 .close
 
@@ -1126,6 +1145,10 @@ print_list equ 0x02029104
   ldr r1,[r1,r3,lsl 0x2]
   .skip 4
   nop
+
+  ;Wrap print_string for party members to fix issue
+  .org 0x0203b390
+  bl PRINT_PARTY_WRAPPER
 
   ;Swap "[name]　をふっかつさせます" with "Revive [name]"
   .org 0x0202cdec
