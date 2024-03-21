@@ -892,6 +892,16 @@ print_list equ 0x02029104
   mov r3,0
   add r0,r0,2
   bx lr
+
+  STRCAT_TWEAK:
+  ldr r0,=0x020c0344
+  ldr r1,=0x0208c53c
+  bl strcat
+  pop {r0,r1}
+  bl strcat
+  pop {r4,lr}
+  bx lr
+  .pool
   .endarea
 .close
 
@@ -1132,11 +1142,13 @@ print_list equ 0x02029104
   push {r0,r1}
   mov r1,r4
   bl strcpy
-  pop {r0,r1}
-  bl strcat
-  pop {r4,lr}
-  bx lr
+  b STRCAT_TWEAK
+  .pool
   .endarea
+
+  ;Change the strcat space to an ASCII one
+  .org 0x0208c53c
+  .asciiz " "
 
   ;Use a different strlen function for spacing some strings
   .org 0x02029274
