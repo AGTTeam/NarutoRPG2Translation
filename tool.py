@@ -6,7 +6,7 @@ import ndspy.soundStream
 from editor import EditorApp
 from hacktools import common, nds
 
-version = "1.0.0"
+version = "1.1.0"
 data = "NarutoRPG2Data/"
 romfile = "naruto.nds"
 rompatch = data + "naruto_patched.nds"
