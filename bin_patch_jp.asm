@@ -83,11 +83,6 @@
   moveq r2,0x1
   cmp r1,r2
   beq jump
-  ;Check if the gift is in the inventory
-  ldr r0,=gift_addr
-  ldrb r1,[r0]
-  cmp r1,0x0
-  bgt jump
   ;Check that we don't already have both tags
   ldr r0,=tag_addr1
   ldrb r1,[r0]
@@ -96,6 +91,11 @@
   and r1,r1,r2
   cmp r1,0x1
   beq jump
+  ;Check if the gift is in the inventory
+  ldr r0,=gift_addr
+  ldrb r1,[r0]
+  cmp r1,0x0
+  bgt jump
   ;Add 1 gift and reset the flag
   mov r1,0x1
   strb r1,[r0]
