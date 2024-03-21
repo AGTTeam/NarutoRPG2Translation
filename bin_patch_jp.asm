@@ -39,7 +39,7 @@
   mov r4,r3
   bl DIALOG_CHECK_STRCMP
   cmp r0,0x0
-  blne @@return
+  bleq @@return
   bl CHECK_UNLOCK_GIFT
   @@return:
   pop {r1-r4,lr}
