@@ -65,6 +65,7 @@ def extract(data):
 def repack(data):
     acgin = data + "extract/data/rom/"
     acgout = data + "repack/data/rom/"
+    replacefolder = data + "replace/data/rom/"
     workfolder = data + "work_ACG/"
     workfont = data + "work_FONT/"
 
@@ -107,7 +108,7 @@ def repack(data):
         totfiles += 1
         pngfile = file.replace(".acg", ".png")
         if os.path.isfile(workfolder + pngfile):
-            ncgr, nscr, cells, palettes, mapfile = readImage(acgin, file, nob)
+            ncgr, nscr, cells, palettes, mapfile = readImage(acgin, file, nob, replacefolder)
             usewidth = ncgr.width
             useheight = ncgr.height
             if file.startswith("map/") and nscr is not None:
@@ -133,10 +134,13 @@ def repack(data):
     common.logMessage("Done! Repacked", totfiles, "files")
 
 
-def readImage(infolder, file, nob=None):
+def readImage(infolder, file, nob=None, replacefolder=""):
     # Read palette
     palfile = file.replace(".acg", ".acl")
     mergefiles = []
+    palfolder = infolder
+    if replacefolder != "" and os.path.isfile(replacefolder + palfile):
+        palfolder = replacefolder
     if palfile.startswith("sys/obj/sys_ob_b_000"):
         mergefiles = ["sys/obj/sys_ob_b_000.acl", "sys/obj/sys_ob_b_002.acl", "sys/obj/sys_ob_b_003.acl"]
     elif palfile.startswith("sys/obj/sys_ob_c_000"):
@@ -180,7 +184,7 @@ def readImage(infolder, file, nob=None):
         else:
             common.logError("Palette file", palfile, "not found")
             return None, None, None, {}, ""
-    size = os.path.getsize(infolder + palfile)
+    size = os.path.getsize(palfolder + palfile)
     colornum = 0x10
     pallen = size
     if "sys_bg_a_001" in file or "sys_bg_a_002" in file or "sys_bg_a_003" in file or "sys_bg_a_004" in file:
@@ -202,7 +206,7 @@ def readImage(infolder, file, nob=None):
                 for j in range(colornum):
                     palette.append(common.readPalette(f.readUShort()))
                 palettes.append(palette)
-    with common.Stream(infolder + palfile, "rb") as f:
+    with common.Stream(palfolder + palfile, "rb") as f:
         for i in range(pallen // (colornum * 2)):
             palette = []
             for j in range(colornum):
