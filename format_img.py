@@ -462,6 +462,7 @@ manualcells = {
             {"width": 40, "height": 8, "x": 64, "y": 40},
             {"width": 8, "height": 32, "x": 96, "y": 8},
             {"width": 8, "height": 16, "x": 104, "y": 24},
+            {"width": 8, "height": 8, "x": 16, "y": 56},
         ]}
     ],
     "title/tl_rpg.acg": [
