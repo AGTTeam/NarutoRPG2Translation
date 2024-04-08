@@ -1456,4 +1456,13 @@ print_list equ 0x02029104
   mov r0,0x7
   .org 0x0203ff2c
   mov r0,0x7
+
+  ;Move sound test left arrow more left
+  .org 0x0207df20
+  ;mov r0,r8 (0x5)
+  mov r0,0x3
+  ;Move sound test character name left
+  .org 0x0207de4c
+  ;add r1,r1,0x8
+  add r1,r1,0x6
 .close
